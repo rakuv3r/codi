@@ -3,6 +3,7 @@ package generator
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,14 +20,25 @@ const (
 
 // Generator generates project scaffolding from templates.
 type Generator struct {
+	fsys         fs.FS
 	templatesDir string
+	useEmbed     bool
 }
 
-// New creates a new generator.
+// New creates a new generator using disk.
 func New(templatesDir string) (*Generator, error) {
 	return &Generator{
 		templatesDir: templatesDir,
+		useEmbed:     false,
 	}, nil
+}
+
+// NewWithFS creates a new generator using fs.FS.
+func NewWithFS(fsys fs.FS) *Generator {
+	return &Generator{
+		fsys:     fsys,
+		useEmbed: true,
+	}
 }
 
 // Generate creates a new project from configuration.
@@ -101,25 +113,30 @@ func (g *Generator) Generate(cfg *ProjectConfig) error {
 
 // copyQualityTools copies the quality tools (Makefile, golangci, etc.)
 func (g *Generator) copyQualityTools(projectDir string, cfg *ProjectConfig) error {
-	qualityDir := filepath.Join(g.templatesDir, cfg.Language, "base", "quality")
-
+	qualityDir := filepath.Join(cfg.Language, "base", "quality")
 	return g.copyTemplateDir(qualityDir, projectDir, cfg)
 }
 
 // copyBase copies the base project structure.
 func (g *Generator) copyBase(projectDir string, cfg *ProjectConfig) error {
-	baseDir := filepath.Join(g.templatesDir, cfg.Language, "base", cfg.Base)
-
+	baseDir := filepath.Join(cfg.Language, "base", cfg.Base)
 	return g.copyTemplateDir(baseDir, projectDir, cfg)
 }
 
 // applyModule applies a module to the project.
 func (g *Generator) applyModule(projectDir, moduleName string, cfg *ProjectConfig) error {
-	moduleDir := filepath.Join(g.templatesDir, cfg.Language, "module", moduleName)
+	moduleDir := filepath.Join(cfg.Language, "module", moduleName)
 
 	// Check if module directory exists
-	if _, err := os.Stat(moduleDir); os.IsNotExist(err) {
-		return fmt.Errorf("module %s not found", moduleName)
+	if g.useEmbed {
+		if _, err := fs.Stat(g.fsys, moduleDir); err != nil {
+			return fmt.Errorf("module %s not found", moduleName)
+		}
+	} else {
+		fullPath := filepath.Join(g.templatesDir, moduleDir)
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+			return fmt.Errorf("module %s not found", moduleName)
+		}
 	}
 
 	return g.copyTemplateDir(moduleDir, projectDir, cfg)
@@ -127,7 +144,40 @@ func (g *Generator) applyModule(projectDir, moduleName string, cfg *ProjectConfi
 
 // copyTemplateDir recursively copies and renders templates from src to dst.
 func (g *Generator) copyTemplateDir(src, dst string, cfg *ProjectConfig) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+	if g.useEmbed {
+		return g.copyTemplateDirEmbed(src, dst, cfg)
+	}
+	return g.copyTemplateDirDisk(src, dst, cfg)
+}
+
+// copyTemplateDirDisk copies from disk using filepath.Walk
+func (g *Generator) copyTemplateDirDisk(src, dst string, cfg *ProjectConfig) error {
+	fullSrc := filepath.Join(g.templatesDir, src)
+	return filepath.Walk(fullSrc, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Get relative path
+		relPath, err := filepath.Rel(fullSrc, path)
+		if err != nil {
+			return err
+		}
+
+		dstPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, DirPermission)
+		}
+
+		// Render and copy file
+		return g.renderTemplateFileDisk(path, dstPath, cfg)
+	})
+}
+
+// copyTemplateDirEmbed copies from embed.FS using fs.WalkDir
+func (g *Generator) copyTemplateDirEmbed(src, dst string, cfg *ProjectConfig) error {
+	return fs.WalkDir(g.fsys, src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -140,23 +190,39 @@ func (g *Generator) copyTemplateDir(src, dst string, cfg *ProjectConfig) error {
 
 		dstPath := filepath.Join(dst, relPath)
 
-		if info.IsDir() {
+		if d.IsDir() {
 			return os.MkdirAll(dstPath, DirPermission)
 		}
 
 		// Render and copy file
-		return g.renderTemplateFile(path, dstPath, cfg)
+		return g.renderTemplateFileEmbed(path, dstPath, cfg)
 	})
 }
 
-// renderTemplateFile renders a template file and writes it to destination.
-func (g *Generator) renderTemplateFile(src, dst string, cfg *ProjectConfig) error {
+// renderTemplateFileDisk renders a template file from disk and writes it to destination.
+func (g *Generator) renderTemplateFileDisk(src, dst string, cfg *ProjectConfig) error {
 	// Read template
 	content, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
+	return g.renderTemplateContent(src, dst, content, cfg)
+}
+
+// renderTemplateFileEmbed renders a template file from embed.FS and writes it to destination.
+func (g *Generator) renderTemplateFileEmbed(src, dst string, cfg *ProjectConfig) error {
+	// Read template
+	content, err := fs.ReadFile(g.fsys, src)
+	if err != nil {
+		return err
+	}
+
+	return g.renderTemplateContent(src, dst, content, cfg)
+}
+
+// renderTemplateContent renders template content and writes to destination.
+func (g *Generator) renderTemplateContent(src, dst string, content []byte, cfg *ProjectConfig) error {
 	// Check if it's a template file (ends with .tmpl)
 	if filepath.Ext(src) == ".tmpl" {
 		// Remove .tmpl extension from destination
@@ -188,12 +254,7 @@ func (g *Generator) renderTemplateFile(src, dst string, cfg *ProjectConfig) erro
 		}
 	} else {
 		// Copy file as-is
-		input, err := os.ReadFile(src)
-		if err != nil {
-			return err
-		}
-
-		if err := os.WriteFile(dst, input, FilePermission); err != nil {
+		if err := os.WriteFile(dst, content, FilePermission); err != nil {
 			return err
 		}
 	}

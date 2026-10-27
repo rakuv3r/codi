@@ -37,16 +37,17 @@ func (pt ProjectType) String() string {
 
 // ProjectInfo contains project metadata.
 type ProjectInfo struct {
-	Name        string      // Project name
-	Path        string      // Project root path
-	Language    Language    // Programming language
-	ProjectType ProjectType // Project type
-
-	// Go project specifics
-	HTTPFramework  string   // HTTP framework (gin/echo/fiber)
-	Database       string   // Database (postgres/mysql/sqlite)
-	DatabaseDriver string   // Database driver (gorm)
-	Features       []string // Features (jwt/redis/swagger)
+	Name           string      // Project name
+	Path           string      // Project root path
+	Language       Language    // Programming language
+	ProjectType    ProjectType // Project type
+	Description    string      // Project description
+	Module         string      // Go module path or Python package name
+	EntryPoint     string      // Entry point for CLI/API (used in templates)
+	HTTPFramework  string      // HTTP framework (gin/echo/fiber)
+	Database       string      // Database (postgres/mysql/sqlite)
+	DatabaseDriver string      // Database driver (gorm)
+	Features       []string    // Features (jwt/redis/swagger)
 }
 
 // HasFeature checks if project has a specific feature.

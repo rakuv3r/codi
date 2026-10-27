@@ -2,6 +2,7 @@ package command
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,9 +53,9 @@ func runView(cmd *cobra.Command, args []string) error {
 	}
 
 	// 2. Get standards for language
-	codiRoot, err := getCodiRoot()
-	if err != nil {
-		return fmt.Errorf("failed to locate codi root: %w", err)
+	codiRoot := getCodiRoot()
+	if codiRoot == "" {
+		return errors.New("view command requires codi source directory")
 	}
 
 	standardsRoot := filepath.Join(codiRoot, "standards")

@@ -3,20 +3,53 @@ package command
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
+	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/analyzer"
 	"github.com/rakuv3r/codi/internal/config"
+	"github.com/rakuv3r/codi/internal/generator"
 )
+
+// projectInfoToTemplateData converts ProjectInfo to generator.TemplateData
+func projectInfoToTemplateData(info *analyzer.ProjectInfo) generator.TemplateData {
+	return generator.TemplateData{
+		ProjectName: info.Name,
+		Description: info.Description,
+		Module:      info.Module,
+		EntryPoint:  info.EntryPoint,
+	}
+}
 
 // addMissingQualityTools checks and adds missing quality tool files.
 func addMissingQualityTools(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, templatesDir string) error {
-	qualityDir := filepath.Join(templatesDir, string(projectInfo.Language), "base", "quality")
+	var qualityDir string
+	var useEmbed bool
+
+	if templatesDir == "" {
+		// Use embedded templates
+		useEmbed = true
+		qualityDir = filepath.Join("templates", string(projectInfo.Language), "base", "quality")
+	} else {
+		// Use disk templates
+		useEmbed = false
+		qualityDir = filepath.Join(templatesDir, string(projectInfo.Language), "base", "quality")
+	}
 
 	// Read all files in quality template directory
-	files, err := os.ReadDir(qualityDir)
+	var files []fs.DirEntry
+	var err error
+
+	if useEmbed {
+		files, err = fs.ReadDir(codi.EmbeddedFS, qualityDir)
+	} else {
+		files, err = os.ReadDir(qualityDir)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to read quality templates: %w", err)
 	}
@@ -35,7 +68,7 @@ func addMissingQualityTools(out io.Writer, projectPath string, projectInfo *anal
 		dstPath := filepath.Join(projectPath, dstFile)
 		if _, err := os.Stat(dstPath); os.IsNotExist(err) {
 			_, _ = fmt.Fprintf(out, "  + Adding %s\n", dstFile)
-			if err := copyQualityFile(qualityDir, projectPath, srcFile, dstFile, projectInfo); err != nil {
+			if err := copyQualityFile(qualityDir, projectPath, srcFile, dstFile, projectInfo, useEmbed); err != nil {
 				return err
 			}
 			added = append(added, dstFile)
@@ -52,23 +85,39 @@ func addMissingQualityTools(out io.Writer, projectPath string, projectInfo *anal
 }
 
 // copyQualityFile copies a quality tool file, processing as template if needed.
-func copyQualityFile(srcDir, dstDir, srcFile, dstFile string, projectInfo *analyzer.ProjectInfo) error {
+func copyQualityFile(srcDir, dstDir, srcFile, dstFile string, projectInfo *analyzer.ProjectInfo, useEmbed bool) error {
 	srcPath := filepath.Join(srcDir, srcFile)
 	dstPath := filepath.Join(dstDir, dstFile)
 
-	data, err := os.ReadFile(srcPath)
+	var data []byte
+	var err error
+
+	if useEmbed {
+		data, err = fs.ReadFile(codi.EmbeddedFS, srcPath)
+	} else {
+		data, err = os.ReadFile(srcPath)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", srcPath, err)
 	}
 
 	// Check if file needs template processing
 	if strings.HasSuffix(srcFile, ".tmpl") {
-		// Process as template
-		// For now, simple string replacement
-		content := string(data)
-		content = strings.ReplaceAll(content, "{{.ProjectName}}", projectInfo.Name)
-		content = strings.ReplaceAll(content, "{{.Language}}", string(projectInfo.Language))
-		data = []byte(content)
+		// Process as Go template
+		tmpl, err := template.New(srcFile).Parse(string(data))
+		if err != nil {
+			return fmt.Errorf("failed to parse template %s: %w", srcFile, err)
+		}
+
+		// Convert ProjectInfo to template data
+		templateData := projectInfoToTemplateData(projectInfo)
+
+		var buf strings.Builder
+		if err := tmpl.Execute(&buf, templateData); err != nil {
+			return fmt.Errorf("failed to execute template %s: %w", srcFile, err)
+		}
+		data = []byte(buf.String())
 	}
 
 	if err := os.WriteFile(dstPath, data, config.FilePermission); err != nil {

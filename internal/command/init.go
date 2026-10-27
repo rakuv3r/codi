@@ -1,15 +1,16 @@
 package command
 
 import (
-	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/generator"
 )
 
@@ -172,9 +173,22 @@ func generateProject(out io.Writer, cfg *generator.ProjectConfig, projectName st
 
 	templatesDir := findTemplatesDir()
 
-	gen, err := generator.New(templatesDir)
-	if err != nil {
-		return fmt.Errorf("failed to create generator: %w", err)
+	var gen *generator.Generator
+	var err error
+
+	if templatesDir == "" {
+		// Use embedded templates
+		templatesFS, subErr := fs.Sub(codi.EmbeddedFS, "templates")
+		if subErr != nil {
+			return fmt.Errorf("failed to access embedded templates: %w", subErr)
+		}
+		gen = generator.NewWithFS(templatesFS)
+	} else {
+		// Use disk templates
+		gen, err = generator.New(templatesDir)
+		if err != nil {
+			return fmt.Errorf("failed to create generator: %w", err)
+		}
 	}
 
 	if err := gen.Generate(cfg); err != nil {
@@ -186,16 +200,22 @@ func generateProject(out io.Writer, cfg *generator.ProjectConfig, projectName st
 }
 
 func findTemplatesDir() string {
+	// Try current directory first (development mode)
+	if _, err := os.Stat("templates"); err == nil {
+		return "templates"
+	}
+
+	// Try executable directory
 	exePath, err := os.Executable()
 	if err != nil {
-		return templatesPath
+		return "" // Use embed
 	}
 
 	exeDir := filepath.Dir(exePath)
 	templatesDir := filepath.Join(exeDir, "..", templatesPath)
 
 	if _, statErr := os.Stat(templatesDir); os.IsNotExist(statErr) {
-		return templatesPath
+		return "" // Use embed
 	}
 
 	return templatesDir
@@ -253,18 +273,20 @@ func selectPythonModules(cfg *generator.ProjectConfig) {
 
 // Helper functions for interactive prompts
 
-var scanner = bufio.NewScanner(os.Stdin)
-
 func prompt(question string) string {
 	fmt.Printf("%s ", question)
-	scanner.Scan()
-	return strings.TrimSpace(scanner.Text())
+	if !inputScanner.Scan() {
+		return ""
+	}
+	return strings.TrimSpace(inputScanner.Text())
 }
 
 func promptWithDefault(question, defaultValue string) string {
 	fmt.Printf("%s [%s] ", question, defaultValue)
-	scanner.Scan()
-	answer := strings.TrimSpace(scanner.Text())
+	if !inputScanner.Scan() {
+		return defaultValue
+	}
+	answer := strings.TrimSpace(inputScanner.Text())
 	if answer == "" {
 		return defaultValue
 	}
@@ -278,8 +300,10 @@ func promptSelect(question string, options []string) string {
 	}
 	fmt.Print("→ ")
 
-	scanner.Scan()
-	input := strings.TrimSpace(scanner.Text())
+	if !inputScanner.Scan() {
+		return options[0]
+	}
+	input := strings.TrimSpace(inputScanner.Text())
 
 	// Parse selection
 	var selection int
@@ -294,7 +318,7 @@ func promptSelect(question string, options []string) string {
 
 func promptYesNo(question string) bool {
 	fmt.Printf("%s [y/n] ", question)
-	scanner.Scan()
-	answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	inputScanner.Scan()
+	answer := strings.ToLower(strings.TrimSpace(inputScanner.Text()))
 	return answer == "y" || answer == "yes"
 }

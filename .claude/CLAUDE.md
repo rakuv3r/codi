@@ -7,39 +7,40 @@
 
 ## Dependencies
 
-Total: 26
-
-- github.com/pelletier/go-toml/v2
+Standards available:
 - github.com/spf13/cobra
-- golang.org/x/mod
-- gopkg.in/yaml.v3
-- golang.org/x/mod/modfile
-- github.com/rakuv3r/codi/internal/analyzer
-- github.com/rakuv3r/codi/internal/standard
-- time
-- regexp
-- github.com/rakuv3r/codi/internal/command
-- fmt
-- strings
-- errors
-- github.com/rakuv3r/codi/internal/config
-- strconv
-- runtime
-- embed
-- go/parser
-- go/token
-- slices
-- bufio
-- github.com/rakuv3r/codi/internal/generator
-- os
-- path/filepath
-- io
-- text/template
+
+Total dependencies: 28
 
 ---
 
 ## Coding Standards
 
-This project follows the standards below. All code generation and modifications should adhere to these standards.
+See `.codi/standards/` for detailed coding standards:
 
-See codi standards directory for detailed coding standards.
+### Universal Standards
+- README → `.codi/standards/universal/README.md`
+- api-design → `.codi/standards/universal/api-design.md`
+- database-principles → `.codi/standards/universal/database-principles.md`
+- design-principles → `.codi/standards/universal/design-principles.md`
+- documentation → `.codi/standards/universal/documentation.md`
+- security-principles → `.codi/standards/universal/security-principles.md`
+
+### Core Standards
+- api-structure → `.codi/standards/go/core/api-structure.md`
+- cli-structure → `.codi/standards/go/core/cli-structure.md`
+- comments → `.codi/standards/go/core/comments.md`
+- concurrency → `.codi/standards/go/core/concurrency.md`
+- context → `.codi/standards/go/core/context.md`
+- error-handling → `.codi/standards/go/core/error-handling.md`
+- formatting → `.codi/standards/go/core/formatting.md`
+- generics → `.codi/standards/go/core/generics.md`
+- imports → `.codi/standards/go/core/imports.md`
+- interfaces → `.codi/standards/go/core/interfaces.md`
+- logging → `.codi/standards/go/core/logging.md`
+- naming → `.codi/standards/go/core/naming.md`
+- performance → `.codi/standards/go/core/performance.md`
+- testing → `.codi/standards/go/core/testing.md`
+
+### Dependency Standards
+- github.com/spf13/cobra → `.codi/standards/go/github.com/spf13/cobra.md`

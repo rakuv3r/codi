@@ -3,12 +3,14 @@ package command
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/analyzer"
 	"github.com/rakuv3r/codi/internal/config"
 	"github.com/rakuv3r/codi/internal/standard"
@@ -135,12 +137,21 @@ func rebuildProjectInfo(cfg *config.Config, projectPath string, deps *analyzer.D
 
 func regenerateProject(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList, cfg *config.Config) error {
 	// Load standards
-	codiRoot, err := getCodiRoot()
-	if err != nil {
-		return fmt.Errorf("failed to locate codi root: %w", err)
+	codiRoot := getCodiRoot()
+
+	var stdMgr *standard.Manager
+	if codiRoot == "" {
+		// Use embedded standards
+		standardsFS, err := fs.Sub(codi.EmbeddedFS, "standards")
+		if err != nil {
+			return fmt.Errorf("failed to access embedded standards: %w", err)
+		}
+		stdMgr = standard.NewManagerWithFS(standardsFS, projectPath)
+	} else {
+		// Use disk standards
+		stdMgr = standard.NewManager(filepath.Join(codiRoot, "standards"), projectPath)
 	}
 
-	stdMgr := standard.NewManager(filepath.Join(codiRoot, "standards"), projectPath)
 	standards, err := stdMgr.LoadForProject(projectInfo, deps)
 	if err != nil {
 		return fmt.Errorf("failed to load standards: %w", err)

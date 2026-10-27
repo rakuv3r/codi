@@ -2,6 +2,7 @@ package standard
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,15 +12,25 @@ import (
 
 // Manager manages coding standards.
 type Manager struct {
-	officialRoot string // Path to built-in standards
-	projectRoot  string // Path to project root
+	fsys         fs.FS
+	officialRoot string
+	projectRoot  string
 }
 
-// NewManager creates a new standards manager.
+// NewManager creates a new standards manager using disk.
 func NewManager(officialRoot, projectRoot string) *Manager {
 	return &Manager{
 		officialRoot: officialRoot,
 		projectRoot:  projectRoot,
+		fsys:         os.DirFS(officialRoot),
+	}
+}
+
+// NewManagerWithFS creates a new standards manager using a custom FS.
+func NewManagerWithFS(fsys fs.FS, projectRoot string) *Manager {
+	return &Manager{
+		fsys:        fsys,
+		projectRoot: projectRoot,
 	}
 }
 
@@ -59,13 +70,13 @@ func (m *Manager) LoadForProject(info *analyzer.ProjectInfo, deps *analyzer.Depe
 
 // loadUniversal loads universal cross-language standards.
 func (m *Manager) loadUniversal() ([]Standard, error) {
-	return m.loadDirectory(filepath.Join(m.officialRoot, "universal"))
+	return m.loadDirectory("universal")
 }
 
 // loadCore loads core language standards.
 func (m *Manager) loadCore(lang analyzer.Language) ([]Standard, error) {
 	langDir := m.langDir(lang)
-	corePath := filepath.Join(m.officialRoot, langDir, "core")
+	corePath := filepath.Join(langDir, "core")
 	return m.loadDirectory(corePath)
 }
 
@@ -73,7 +84,7 @@ func (m *Manager) loadCore(lang analyzer.Language) ([]Standard, error) {
 func (m *Manager) loadDirectory(dirPath string) ([]Standard, error) {
 	var standards []Standard
 
-	entries, err := os.ReadDir(dirPath)
+	entries, err := fs.ReadDir(m.fsys, dirPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dirPath, err)
 	}
@@ -84,12 +95,11 @@ func (m *Manager) loadDirectory(dirPath string) ([]Standard, error) {
 		}
 
 		fullPath := filepath.Join(dirPath, entry.Name())
-		relPath, _ := filepath.Rel(m.officialRoot, fullPath)
 		name := strings.TrimSuffix(entry.Name(), ".md")
 
 		standards = append(standards, Standard{
 			Name:       name,
-			Path:       relPath,
+			Path:       fullPath,
 			FullPath:   fullPath,
 			Source:     SourceOfficial,
 			Dependency: nil,
@@ -103,10 +113,13 @@ func (m *Manager) loadDirectory(dirPath string) ([]Standard, error) {
 func (m *Manager) loadStandard(lang analyzer.Language, depPath string, dep *analyzer.Dependency) (*Standard, error) {
 	// Resolve standard path using zero-mapping
 	stdPath := m.resolvePath(lang, depPath)
+	if stdPath == "" {
+		return nil, fmt.Errorf("invalid dependency path: %s", depPath)
+	}
 
 	// Check local override first
 	localPath := filepath.Join(m.projectRoot, ".codi", "standards", stdPath)
-	if fileExists(localPath) {
+	if _, err := os.Stat(localPath); err == nil {
 		relPath, _ := filepath.Rel(filepath.Join(m.projectRoot, ".codi", "standards"), localPath)
 		return &Standard{
 			Name:       filepath.Base(depPath),
@@ -117,20 +130,18 @@ func (m *Manager) loadStandard(lang analyzer.Language, depPath string, dep *anal
 		}, nil
 	}
 
-	// Fallback to official
-	officialPath := filepath.Join(m.officialRoot, stdPath)
-	if fileExists(officialPath) {
-		relPath, _ := filepath.Rel(m.officialRoot, officialPath)
+	// Check in fsys (embedded or disk)
+	if _, err := fs.Stat(m.fsys, stdPath); err == nil {
 		return &Standard{
 			Name:       filepath.Base(depPath),
-			Path:       relPath,
-			FullPath:   officialPath,
+			Path:       stdPath,
+			FullPath:   stdPath,
 			Source:     SourceOfficial,
 			Dependency: dep,
 		}, nil
 	}
 
-	return nil, ErrStandardNotFound
+	return nil, fmt.Errorf("standard not found: %s", stdPath)
 }
 
 // resolvePath resolves dependency path to standard file path (zero-mapping).
@@ -160,10 +171,4 @@ func (m *Manager) langDir(lang analyzer.Language) string {
 	default:
 		return lang.String()
 	}
-}
-
-// fileExists checks if file exists.
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }

@@ -4,12 +4,14 @@ package command
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/analyzer"
 	"github.com/rakuv3r/codi/internal/config"
 	"github.com/rakuv3r/codi/internal/standard"
@@ -54,7 +56,31 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 		Path:        projectPath,
 		Language:    lang,
 		ProjectType: inferProjectType(deps),
+		Description: fmt.Sprintf("A %s %s project", lang, inferProjectType(deps)),
 	}
+
+	// Set entry point based on project type
+	if projectInfo.ProjectType == analyzer.ProjectTypeAPI {
+		projectInfo.EntryPoint = "server"
+	} else {
+		projectInfo.EntryPoint = "."
+	}
+
+	// Extract module name for Go projects
+	if lang == analyzer.LanguageGo {
+		if modFile := filepath.Join(projectPath, "go.mod"); true {
+			if data, err := os.ReadFile(modFile); err == nil {
+				// Simple extraction: find "module xxx" line
+				for _, line := range strings.Split(string(data), "\n") {
+					if strings.HasPrefix(strings.TrimSpace(line), "module ") {
+						projectInfo.Module = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "module "))
+						break
+					}
+				}
+			}
+		}
+	}
+
 	_, _ = fmt.Fprintf(out, "  ✓ Project type: %s\n", projectInfo.ProjectType)
 
 	// Generate files
@@ -93,21 +119,32 @@ func detectAndAnalyze(out io.Writer, projectPath string) (analyzer.Language, *an
 }
 
 func generateProjectFiles(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) error {
-	codiRoot, err := getCodiRoot()
-	if err != nil {
-		return fmt.Errorf("failed to locate codi root: %w", err)
-	}
+	codiRoot := getCodiRoot()
 
 	// Load standards
-	standards, err := loadStandardsForAdopt(out, codiRoot, projectPath, projectInfo, deps)
+	var standards any
+	var err error
+	if codiRoot == "" {
+		// Use embedded standards
+		standards, err = loadStandardsFromEmbed(out, projectPath, projectInfo, deps)
+	} else {
+		// Use disk standards
+		standards, err = loadStandardsForAdopt(out, codiRoot, projectPath, projectInfo, deps)
+	}
 	if err != nil {
 		return err
 	}
 
-	// Find templates directory
-	templatesDir, err := findTemplatesDirForAdopt()
-	if err != nil {
-		return err
+	// Find templates directory (or use embed)
+	var templatesDir string
+	if codiRoot == "" {
+		// Use embedded templates - pass special marker
+		templatesDir = "" // Signal to use embed
+	} else {
+		templatesDir, err = findTemplatesDirForAdopt()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Generate all files
@@ -118,6 +155,22 @@ func generateProjectFiles(out io.Writer, projectPath string, projectInfo *analyz
 
 	printAdoptSuccessMessage(out)
 	return nil
+}
+
+func loadStandardsFromEmbed(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) (any, error) {
+	// Create sub-FS for standards directory
+	standardsFS, err := fs.Sub(codi.EmbeddedFS, "standards")
+	if err != nil {
+		return nil, fmt.Errorf("failed to access embedded standards: %w", err)
+	}
+
+	stdMgr := standard.NewManagerWithFS(standardsFS, projectPath)
+	standards, err := stdMgr.LoadForProject(projectInfo, deps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load standards: %w", err)
+	}
+	_, _ = fmt.Fprintf(out, "  ✓ Standards: %d loaded\n", standards.Count())
+	return standards, nil
 }
 
 func loadStandardsForAdopt(out io.Writer, codiRoot, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) (any, error) {
@@ -209,21 +262,47 @@ func printAdoptSuccessMessage(out io.Writer) {
 func copyReviewTemplates(out io.Writer, codiRoot, projectPath string) {
 	claudeDir := filepath.Join(projectPath, config.ClaudeDirName)
 
-	// Copy review-checklist.md
-	checklistSrc := filepath.Clean(filepath.Join(codiRoot, config.StandardsDirName, config.ReviewChecklistFilename))
-	checklistDest := filepath.Clean(filepath.Join(claudeDir, config.ReviewChecklistFilename))
-	if data, err := os.ReadFile(checklistSrc); err == nil {
-		if err := os.WriteFile(checklistDest, data, config.ConfigPermission); err == nil {
-			_, _ = fmt.Fprintln(out, "  ✓ .claude/review-checklist.md created")
-		}
+	// Create .claude directory if needed
+	if err := os.MkdirAll(claudeDir, config.DirPermission); err != nil {
+		return
 	}
 
-	// Copy review-manual.md
-	manualSrc := filepath.Clean(filepath.Join(codiRoot, config.StandardsDirName, config.ReviewManualFilename))
-	manualDest := filepath.Clean(filepath.Join(claudeDir, config.ReviewManualFilename))
-	if data, err := os.ReadFile(manualSrc); err == nil {
-		if err := os.WriteFile(manualDest, data, config.ConfigPermission); err == nil {
-			_, _ = fmt.Fprintln(out, "  ✓ .claude/review-manual.md created")
+	var checklistData, manualData []byte
+	var err error
+
+	if codiRoot == "" {
+		// Use embedded files
+		checklistData, err = fs.ReadFile(codi.EmbeddedFS, filepath.Join("standards", config.ReviewChecklistFilename))
+		if err == nil {
+			checklistDest := filepath.Join(claudeDir, config.ReviewChecklistFilename)
+			if writeErr := os.WriteFile(checklistDest, checklistData, config.ConfigPermission); writeErr == nil {
+				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-checklist.md created")
+			}
+		}
+
+		manualData, err = fs.ReadFile(codi.EmbeddedFS, filepath.Join("standards", config.ReviewManualFilename))
+		if err == nil {
+			manualDest := filepath.Join(claudeDir, config.ReviewManualFilename)
+			if writeErr := os.WriteFile(manualDest, manualData, config.ConfigPermission); writeErr == nil {
+				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-manual.md created")
+			}
+		}
+	} else {
+		// Use disk files
+		checklistSrc := filepath.Join(codiRoot, config.StandardsDirName, config.ReviewChecklistFilename)
+		checklistDest := filepath.Join(claudeDir, config.ReviewChecklistFilename)
+		if data, err := os.ReadFile(checklistSrc); err == nil {
+			if err := os.WriteFile(checklistDest, data, config.ConfigPermission); err == nil {
+				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-checklist.md created")
+			}
+		}
+
+		manualSrc := filepath.Join(codiRoot, config.StandardsDirName, config.ReviewManualFilename)
+		manualDest := filepath.Join(claudeDir, config.ReviewManualFilename)
+		if data, err := os.ReadFile(manualSrc); err == nil {
+			if err := os.WriteFile(manualDest, data, config.ConfigPermission); err == nil {
+				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-manual.md created")
+			}
 		}
 	}
 }
@@ -273,17 +352,25 @@ func inferProjectType(deps *analyzer.DependencyList) analyzer.ProjectType {
 }
 
 // getCodiRoot returns the codi installation root directory.
-func getCodiRoot() (string, error) {
+// getCodiRoot returns the codi installation root directory.
+// Returns empty string if not found (caller should use embed).
+func getCodiRoot() string {
 	// Get executable path
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("failed to get executable path: %w", err)
+		// If we can't get exe path, try current directory
+		cwd, _ := os.Getwd()
+		if _, statErr := os.Stat(filepath.Join(cwd, "standards")); statErr == nil {
+			return cwd
+		}
+		// Return empty string to signal use of embed
+		return ""
 	}
 
 	// Resolve symlinks
 	exe, err = filepath.EvalSymlinks(exe)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve symlinks: %w", err)
+		return "" // Use embed
 	}
 
 	// Assume: bin/codi is in codi root
@@ -295,11 +382,12 @@ func getCodiRoot() (string, error) {
 	if _, err := os.Stat(standardsPath); err != nil {
 		// Fallback: try current working directory (for development)
 		cwd, _ := os.Getwd()
-		if _, err := os.Stat(filepath.Join(cwd, "standards")); err == nil {
-			return cwd, nil
+		if _, statErr := os.Stat(filepath.Join(cwd, "standards")); statErr == nil {
+			return cwd
 		}
-		return "", ErrStandardsNotFound
+		// Return empty string to signal use of embed
+		return ""
 	}
 
-	return root, nil
+	return root
 }

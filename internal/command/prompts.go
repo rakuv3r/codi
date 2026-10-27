@@ -10,6 +10,14 @@ import (
 	"github.com/rakuv3r/codi/internal/generator"
 )
 
+// Shared scanner for consistent input handling across init.go
+// Declared here to be accessible from both files
+var inputScanner *bufio.Scanner
+
+func init() {
+	inputScanner = bufio.NewScanner(os.Stdin)
+}
+
 // promptAITools prompts user to select AI tools interactively.
 func promptAITools() []generator.AIToolConfig {
 	available := generator.AvailableAITools()
@@ -48,9 +56,10 @@ func promptMultiSelect(question string, options []string) []int {
 	}
 	fmt.Print("→ (comma-separated, e.g., 1,2): ")
 
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
+	if !inputScanner.Scan() {
+		return []int{}
+	}
+	input := strings.TrimSpace(inputScanner.Text())
 
 	if input == "" {
 		return []int{}
