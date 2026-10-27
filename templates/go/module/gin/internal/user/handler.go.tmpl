@@ -1,0 +1,16 @@
+package user
+
+import (
+	"github.com/gin-gonic/gin"
+)
+
+// GetUser handles GET /api/v1/users/:id
+func GetUser(c *gin.Context) {
+	id := c.Param("id")
+
+	// TODO: Get user from database
+	c.JSON(200, gin.H{
+		"id":   id,
+		"name": "Example User",
+	})
+}

@@ -1,0 +1,148 @@
+# golangci-lint 配置
+# 参考：https://golangci-lint.run/docs/product/migration-guide
+
+version: "2"
+
+run:
+  timeout: 5m
+  go: '1.27.3'
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - gocyclo
+    - goconst
+    - gosec
+    - bodyclose
+    - errname
+    - errorlint
+    - nilerr
+    - nilnil
+    - rowserrcheck
+    - sqlclosecheck
+    - contextcheck
+    - copyloopvar
+    - funlen
+    - gocritic
+    - makezero
+    - nolintlint
+    - predeclared
+    - reassign
+    - perfsprint
+    - intrange
+    - mirror
+    - sloglint
+    - errchkjson
+    - whitespace
+    - thelper
+    - bidichk
+    - usestdlibvars
+    - asasalint
+    - durationcheck
+    - wastedassign
+    - dupword
+    - gocheckcompilerdirectives
+    - prealloc
+
+  disable:
+    - exhaustruct
+
+  settings:
+    errcheck:
+      check-blank: false
+      check-type-assertions: true
+
+    govet:
+      enable-all: true
+      disable: []
+
+    staticcheck:
+      checks:
+        - all
+        - -SA4023  # darwin stub 总是返回 error
+        - -SA6002  # pool 性能优化警告
+
+    gocyclo:
+      min-complexity: 15
+
+    funlen:
+      lines: 60
+      statements: 40
+
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+
+    misspell:
+      locale: US
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
+    gosec:
+      excludes:
+        - G304  # File path from variable - OK for CLI tools
+        - G703  # Path traversal - OK for CLI tools
+        - G204
+        - G301  # Directory permissions 0755 are standard
+        - G306  # File permissions 0644 are standard
+
+  exclusions:
+    rules:
+      - path: '_test\.go'
+        linters:
+          - gosec
+          - goconst
+          - gocyclo
+          - funlen
+      - path: 'cmd/'
+        text: "os.Exit"
+        linters:
+          - revive
+
+formatters:
+  enable:
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/rakuv3r/codi
+
+output:
+  formats:
+    text:
+      path: stdout
+      colors: true
+      print-linter-name: true
+      print-issued-lines: true
+  show-stats: true

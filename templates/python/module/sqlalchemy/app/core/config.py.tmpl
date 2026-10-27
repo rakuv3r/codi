@@ -1,0 +1,18 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Application settings"""
+
+    APP_NAME: str = "{{.ProjectName}}"
+    DEBUG: bool = False
+    SECRET_KEY: str = "change-me-in-production"
+    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/dbname"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+    )
+
+
+settings = Settings()

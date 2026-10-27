@@ -1,0 +1,150 @@
+# Go Project Refactoring Guidelines
+
+## Directory Structure Standards
+
+### Must Follow
+
+1. **Organize by feature modules, not by technical layers**
+   ```
+   ✅ internal/user/, internal/order/
+   ❌ internal/handler/, internal/service/
+   ```
+
+2. **Keep structure flat, avoid deep nesting**
+   ```
+   ✅ internal/user/handler.go (2 levels)
+   ❌ internal/api/v1/handlers/user/handler.go (5 levels)
+   ```
+
+3. **Each module is one package**
+   ```
+   internal/user/       # package user
+     user.go            # Domain model
+     handler.go         # HTTP handler
+     repository.go      # Data access
+   ```
+
+4. **Entry points in cmd/**
+   ```
+   cmd/
+     server/main.go     # API server
+     worker/main.go     # Background worker
+   ```
+
+### Recommended (Optional)
+
+- Shared config in `internal/config/`
+- Shared domain models in `internal/domain/` (if used by multiple modules)
+- Middleware in `internal/middleware/` or within respective modules
+
+## Quality Tools Standards
+
+### Required Files
+
+1. **Makefile** - Unified build commands
+   ```makefile
+   Required targets:
+   - make build
+   - make test
+   - make lint
+   - make run
+   - make fmt
+   - make clean
+   ```
+
+2. **.golangci.yml** - Code quality checks
+
+3. **.gitignore** - Version control
+
+4. **go.mod** - Dependency management
+
+## Code Organization Standards
+
+### Package Naming
+
+- Package name = directory name
+- Lowercase, singular (`user` not `users`)
+- No underscores (`orderitem` not `order_item`)
+
+### File Naming
+
+- By responsibility: `handler.go`, `repository.go`
+- Domain model: `{module}.go` (e.g., `user.go`)
+- Tests: `{name}_test.go`
+
+### Import Order
+
+```go
+import (
+    // Standard library
+    "context"
+    "fmt"
+
+    // Third-party
+    "github.com/gin-gonic/gin"
+
+    // This project
+    "yourproject/internal/config"
+)
+```
+
+## Architecture Standards
+
+### Dependency Direction
+
+```
+handler → service → repository
+  ↓
+model (used by all layers)
+```
+
+### Interface Definition
+
+- Define interfaces at the **consumer side**, not implementation side
+- Prefer small interfaces over large ones
+
+### Error Handling
+
+- Return error, don't panic
+- Wrap errors: `fmt.Errorf("context: %w", err)`
+
+## Testing Standards
+
+### Required Tests
+
+- Each module must have unit tests
+- Test coverage > 60%
+
+### Test File Location
+
+```
+internal/user/
+  user.go
+  user_test.go        # Same directory
+  handler.go
+  handler_test.go
+```
+
+## Refactoring Principles
+
+1. **Small steps** - Refactor one module at a time
+2. **Test first** - Ensure tests exist before refactoring
+3. **Continuous verification** - Run `make test` after each step
+4. **Keep backups** - Backup before major changes
+
+## Acceptance Criteria
+
+Refactoring is complete when:
+
+- [ ] Passes `make build`
+- [ ] Passes `make test`
+- [ ] Passes `make lint`
+- [ ] Can run with `make run`
+- [ ] `internal/` organized by feature modules
+- [ ] All modules have tests
+
+## References
+
+- Official Go: https://go.dev/doc/modules/layout
+- Community consensus: Feature-based > Layer-based
+- Top projects: Kubernetes, Prometheus, etcd

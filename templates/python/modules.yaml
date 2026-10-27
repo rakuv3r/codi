@@ -1,0 +1,76 @@
+# Python project template modules configuration
+
+bases:
+  api:
+    path: base/api
+    description: "FastAPI HTTP API service"
+    structure: "app/main.py + app/users/ + app/core/"
+    entry_point: "app.main:app"
+
+modules:
+  # Web frameworks
+  fastapi:
+    category: framework
+    base: api
+    description: "FastAPI web framework"
+    adds:
+      - app/users/routes.py
+      - app/users/schemas.py
+      - app/users/service.py
+      - app/core/config.py
+    python_packages:
+      - fastapi
+      - uvicorn[standard]
+      - pydantic-settings
+    standards:
+      - python/core/api-structure.md
+
+  # Database
+  sqlalchemy:
+    category: database
+    base: api
+    description: "SQLAlchemy ORM (async)"
+    adds:
+      - app/users/repository.py
+      - app/users/models.py
+      - app/core/database.py
+    python_packages:
+      - sqlalchemy[asyncio]
+      - asyncpg
+    standards:
+      - python/database/sqlalchemy.md
+
+  # Testing
+  pytest:
+    category: testing
+    description: "Pytest testing framework"
+    python_packages:
+      - pytest
+      - pytest-asyncio
+      - httpx
+    standards:
+      - python/testing/pytest.md
+
+categories:
+  framework:
+    prompt: "Web framework?"
+    required: true
+    applies_to: [api]
+    options:
+      - fastapi
+
+  database:
+    prompt: "Database?"
+    required: false
+    applies_to: [api]
+    options:
+      - sqlalchemy
+      - none
+
+  testing:
+    prompt: "Testing framework?"
+    required: false
+    applies_to: [api]
+    options:
+      - pytest
+      - none

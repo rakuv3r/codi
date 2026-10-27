@@ -1,0 +1,31 @@
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+class UserBase(BaseModel):
+    """Base user fields"""
+
+    email: EmailStr
+    name: str
+
+
+class UserCreate(UserBase):
+    """Create user request"""
+
+    password: str
+
+
+class UserUpdate(BaseModel):
+    """Update user request (all fields optional)"""
+
+    email: EmailStr | None = None
+    name: str | None = None
+    password: str | None = None
+
+
+class UserResponse(UserBase):
+    """User response"""
+
+    id: int
+    is_active: bool = True
+
+    model_config = ConfigDict(from_attributes=True)

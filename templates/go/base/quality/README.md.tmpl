@@ -1,0 +1,36 @@
+# {{.ProjectName}}
+
+{{.Description}}
+
+## Quick Start
+
+```bash
+make setup    # Install development tools
+make build    # Build the application
+make test     # Run tests
+make lint     # Run linter
+make run      # Run the application
+```
+
+## Development
+
+```bash
+make fmt              # Format code
+make test-coverage    # View test coverage
+make clean            # Clean build artifacts
+```
+
+## Project Structure
+
+```
+.
+├── cmd/              # Application entrypoints
+├── internal/         # Private application code
+├── go.mod            # Go module definition
+├── Makefile          # Build automation
+└── .golangci.yml     # Linter configuration
+```
+
+## Standards
+
+See `.claude/CLAUDE.md` for coding standards and architecture guidelines.

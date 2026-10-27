@@ -1,0 +1,27 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Start the server",
+	Long:  `Start the server and listen for requests`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		port, _ := cmd.Flags().GetInt("port")
+		fmt.Printf("Starting server on port %d...\n", port)
+
+		// TODO: Implement server logic
+
+		return nil
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(serveCmd)
+
+	serveCmd.Flags().IntP("port", "p", 8080, "Port to listen on")
+}

@@ -1,0 +1,42 @@
+# Binaries
+/codi
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/dist/
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.*
+!coverage.go
+*.coverprofile
+profile.cov
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.log
+*.tmp
+.cache/

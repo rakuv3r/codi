@@ -1,0 +1,65 @@
+package user
+
+import (
+	"context"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestRepository_GetByID(t *testing.T) {
+	// Create mock database
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	// Setup expectations
+	rows := sqlmock.NewRows([]string{"id", "name", "email"}).
+		AddRow(1, "Test User", "test@example.com")
+
+	mock.ExpectQuery("SELECT id, name, email FROM users WHERE id").
+		WithArgs(1).
+		WillReturnRows(rows)
+
+	// Execute
+	user, err := repo.GetByID(context.Background(), 1)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, 1, user.ID)
+	assert.Equal(t, "Test User", user.Name)
+	assert.Equal(t, "test@example.com", user.Email)
+
+	// Verify all expectations were met
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestRepository_Create(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	user := &User{
+		Name:  "New User",
+		Email: "new@example.com",
+	}
+
+	// Setup expectations
+	mock.ExpectQuery("INSERT INTO users").
+		WithArgs(user.Name, user.Email).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	// Execute
+	err = repo.Create(context.Background(), user)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, 1, user.ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

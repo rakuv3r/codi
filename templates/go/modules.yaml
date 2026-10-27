@@ -1,0 +1,96 @@
+# Go project template modules configuration
+
+bases:
+  cli:
+    path: base/cli
+    description: "Command-line tool"
+    structure: "main.go + cmd/ + internal/"
+    entry_point: "."
+
+  api:
+    path: base/api
+    description: "HTTP API service"
+    structure: "cmd/server/main.go + internal/"
+    entry_point: "server"
+
+modules:
+  # Web frameworks
+  gin:
+    category: framework
+    base: api
+    description: "Gin web framework"
+    replaces:
+      - cmd/server/main.go
+    adds:
+      - internal/user/handler.go
+      - internal/config/config.go
+    go_packages:
+      - github.com/gin-gonic/gin@latest
+    standards:
+      - golang/github.com/gin-gonic/gin.md
+      - golang/net/http.md
+
+  # CLI frameworks
+  cobra:
+    category: cli-framework
+    base: cli
+    description: "Cobra CLI framework"
+    adds:
+      - cmd/serve.go
+    go_packages:
+      - github.com/spf13/cobra@latest
+    standards:
+      - golang/github.com/spf13/cobra.md
+
+  # Database
+  database-sql:
+    category: database
+    description: "Standard database/sql with PostgreSQL"
+    adds:
+      - internal/user/repository.go
+      - internal/config/database.go
+    go_packages:
+      - github.com/lib/pq@latest
+    standards:
+      - golang/database/sql.md
+
+  # Testing
+  testify:
+    category: testing
+    description: "Testify testing toolkit"
+    go_packages:
+      - github.com/stretchr/testify@latest
+    standards:
+      - golang/github.com/stretchr/testify.md
+
+categories:
+  framework:
+    prompt: "Web framework?"
+    required: true
+    applies_to: [api]
+    options:
+      - gin
+
+  cli-framework:
+    prompt: "CLI framework?"
+    required: false
+    applies_to: [cli]
+    options:
+      - cobra
+      - none
+
+  database:
+    prompt: "Database?"
+    required: false
+    applies_to: [api, cli]
+    options:
+      - database-sql
+      - none
+
+  testing:
+    prompt: "Testing framework?"
+    required: false
+    applies_to: [api, cli]
+    options:
+      - testify
+      - none

@@ -1,0 +1,49 @@
+# {{.ProjectName}}
+
+{{.Description}}
+
+## Quick Start
+
+```bash
+make setup    # Install dependencies
+make run      # Run the application
+make test     # Run tests
+make lint     # Run linter
+```
+
+## Development
+
+```bash
+make fmt              # Format code
+make test-coverage    # View test coverage
+make clean            # Clean build artifacts
+```
+
+## Project Structure
+
+```
+.
+├── app/              # Application code
+│   ├── main.py       # FastAPI application
+│   ├── users/        # User module
+│   └── core/         # Core configuration
+├── tests/            # Test files
+├── pyproject.toml    # Project configuration
+└── Makefile          # Build automation
+```
+
+## API Documentation
+
+Once running, visit:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/dbname
+SECRET_KEY=your-secret-key
+DEBUG=false
+```

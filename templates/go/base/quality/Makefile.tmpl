@@ -1,0 +1,92 @@
+.DEFAULT_GOAL := help
+
+# Project variables
+APP_NAME := {{.ProjectName}}
+
+.PHONY: help
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: _check_golangci
+_check_golangci:
+	@command -v golangci-lint >/dev/null 2>&1 || { \
+		echo "Error: golangci-lint not found"; \
+		echo "Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+		exit 1; \
+	}
+
+## ────────────────────────────────────────────────────────────
+## Setup
+## ────────────────────────────────────────────────────────────
+
+.PHONY: setup
+setup: ## Install development tools
+	@echo "Installing development tools..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo "Downloading dependencies..."
+	go mod download
+	go mod verify
+	@echo "✓ Setup complete"
+
+## ────────────────────────────────────────────────────────────
+## Development
+## ────────────────────────────────────────────────────────────
+
+.PHONY: run
+run: ## Run the application
+	@echo "Running $(APP_NAME)..."
+{{if eq .EntryPoint "."}}	go run .
+{{else}}	go run ./cmd/{{.EntryPoint}}
+{{end}}
+
+.PHONY: build
+build: ## Build binary
+	@echo "Building $(APP_NAME)..."
+{{if eq .EntryPoint "."}}	go build -o bin/$(APP_NAME) .
+{{else}}	go build -o bin/$(APP_NAME) ./cmd/{{.EntryPoint}}
+{{end}}	@echo "✓ Built: bin/$(APP_NAME)"
+
+## ────────────────────────────────────────────────────────────
+## Code Quality
+## ────────────────────────────────────────────────────────────
+
+.PHONY: fmt
+fmt: ## Format code
+	@echo "Formatting code..."
+	gofmt -s -w .
+	goimports -w -local {{.Module}} .
+	@echo "✓ Code formatted"
+
+.PHONY: lint
+lint: _check_golangci ## Run linter
+	@echo "Running linter..."
+	golangci-lint run ./...
+	@echo "✓ Lint passed"
+
+## ────────────────────────────────────────────────────────────
+## Testing
+## ────────────────────────────────────────────────────────────
+
+.PHONY: test
+test: ## Run tests
+	@echo "Running tests..."
+	go test -v -race -coverprofile=coverage.out ./...
+	@echo "✓ Tests passed"
+
+.PHONY: test-coverage
+test-coverage: test ## View test coverage report
+	@echo "Generating coverage report..."
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "✓ Coverage report: coverage.html"
+	@echo "Open coverage.html in your browser to view details"
+
+## ────────────────────────────────────────────────────────────
+## Cleanup
+## ────────────────────────────────────────────────────────────
+
+.PHONY: clean
+clean: ## Clean build artifacts
+	@echo "Cleaning..."
+	rm -rf bin/
+	rm -f coverage.out coverage.html
+	@echo "✓ Cleaned"

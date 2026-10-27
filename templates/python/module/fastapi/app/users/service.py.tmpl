@@ -1,0 +1,33 @@
+from app.users.schemas import UserCreate, UserResponse, UserUpdate
+
+
+class UserService:
+    """User business logic"""
+
+    async def get_user(self, user_id: int) -> UserResponse | None:
+        """Get user by ID"""
+        # TODO: Implement with repository
+        return None
+
+    async def list_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+        """List all users"""
+        # TODO: Implement with repository
+        return []
+
+    async def create_user(self, data: UserCreate) -> UserResponse:
+        """Create new user"""
+        # TODO: Implement with repository
+        # - Validate email doesn't exist
+        # - Hash password
+        # - Create user
+        raise NotImplementedError
+
+    async def update_user(self, user_id: int, data: UserUpdate) -> UserResponse | None:
+        """Update user"""
+        # TODO: Implement with repository
+        return None
+
+    async def delete_user(self, user_id: int) -> bool:
+        """Delete user"""
+        # TODO: Implement with repository
+        return False

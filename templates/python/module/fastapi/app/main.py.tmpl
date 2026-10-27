@@ -1,0 +1,19 @@
+from fastapi import FastAPI
+
+from app.core.config import settings
+from app.users.routes import router as users_router
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="{{.Description}}",
+    version="1.0.0",
+)
+
+# Register routers
+app.include_router(users_router, prefix="/api/v1")
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "ok"}

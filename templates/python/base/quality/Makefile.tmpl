@@ -1,0 +1,83 @@
+.DEFAULT_GOAL := help
+
+# Project variables
+APP_NAME := {{.ProjectName}}
+
+.PHONY: help
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: _check_uv
+_check_uv:
+	@command -v uv >/dev/null 2>&1 || { \
+		echo "Error: uv not found"; \
+		echo "Install: curl -LsSf https://astral.sh/uv/install.sh | sh"; \
+		exit 1; \
+	}
+
+## ────────────────────────────────────────────────────────────
+## Setup
+## ────────────────────────────────────────────────────────────
+
+.PHONY: setup
+setup: _check_uv ## Install development tools
+	@echo "Installing dependencies..."
+	uv sync
+	@echo "✓ Setup complete"
+
+## ────────────────────────────────────────────────────────────
+## Development
+## ────────────────────────────────────────────────────────────
+
+.PHONY: run
+run: _check_uv ## Run the application
+	@echo "Running $(APP_NAME)..."
+	uv run uvicorn {{.EntryPoint}} --host 0.0.0.0 --port 8000
+
+## ────────────────────────────────────────────────────────────
+## Code Quality
+## ────────────────────────────────────────────────────────────
+
+.PHONY: fmt
+fmt: _check_uv ## Format code
+	@echo "Formatting code..."
+	uv run ruff format app tests
+	uv run ruff check --fix app tests
+	@echo "✓ Code formatted"
+
+.PHONY: lint
+lint: _check_uv ## Run linter
+	@echo "Running linter..."
+	uv run ruff check app tests
+	@echo "✓ Lint passed"
+
+## ────────────────────────────────────────────────────────────
+## Testing
+## ────────────────────────────────────────────────────────────
+
+.PHONY: test
+test: _check_uv ## Run tests
+	@echo "Running tests..."
+	uv run pytest -v --cov=app --cov-report=term
+	@echo "✓ Tests passed"
+
+.PHONY: test-coverage
+test-coverage: _check_uv ## View test coverage report
+	@echo "Generating coverage report..."
+	uv run pytest --cov=app --cov-report=html
+	@echo "✓ Coverage report: htmlcov/index.html"
+	@echo "Open htmlcov/index.html in your browser to view details"
+
+## ────────────────────────────────────────────────────────────
+## Cleanup
+## ────────────────────────────────────────────────────────────
+
+.PHONY: clean
+clean: ## Clean build artifacts
+	@echo "Cleaning..."
+	rm -rf .venv
+	rm -rf .pytest_cache .coverage htmlcov
+	rm -rf build dist *.egg-info
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -type f -name '*.pyc' -delete
+	@echo "✓ Cleaned"
