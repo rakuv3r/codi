@@ -13,6 +13,7 @@ import (
 	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/analyzer"
 	"github.com/rakuv3r/codi/internal/config"
+	"github.com/rakuv3r/codi/internal/setup"
 	"github.com/rakuv3r/codi/internal/standard"
 )
 
@@ -136,55 +137,22 @@ func rebuildProjectInfo(cfg *config.Config, projectPath string, deps *analyzer.D
 }
 
 func regenerateProject(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList, cfg *config.Config) error {
-	// Load standards
-	codiRoot := getCodiRoot()
-
-	var stdMgr *standard.Manager
-	if codiRoot == "" {
-		// Use embedded standards
-		standardsFS, err := fs.Sub(codi.EmbeddedFS, "standards")
-		if err != nil {
-			return fmt.Errorf("failed to access embedded standards: %w", err)
-		}
-		stdMgr = standard.NewManagerWithFS(standardsFS, projectPath)
-	} else {
-		// Use disk standards
-		stdMgr = standard.NewManager(filepath.Join(codiRoot, "standards"), projectPath)
-	}
-
-	standards, err := stdMgr.LoadForProject(projectInfo, deps)
+	// Load standards using setup package
+	standards, codiRoot, err := setup.LoadStandards(projectPath, projectInfo, deps)
 	if err != nil {
 		return fmt.Errorf("failed to load standards: %w", err)
 	}
 
 	_, _ = fmt.Fprintf(out, "  ✓ Standards: %d loaded\n", standards.Count())
 
-	// Copy standards to .codi/standards/
-	if err := copyStandardsToProject(projectPath, standards, codiRoot); err != nil {
+	// Copy standards to .codi/standards/ using setup package
+	if err := setup.CopyStandardsToProject(projectPath, standards, codiRoot); err != nil {
 		return fmt.Errorf("failed to copy standards: %w", err)
 	}
 
-	_, _ = fmt.Fprintln(out, "\n📝 Updating AI tool files...")
-
-	// Generate AI tool files based on config
-	for _, tool := range cfg.AITools {
-		if !tool.Enabled {
-			continue
-		}
-
-		// Create parent directory
-		toolDir := filepath.Dir(filepath.Join(projectPath, tool.OutputPath))
-		if err := os.MkdirAll(toolDir, config.DirPermission); err != nil {
-			return fmt.Errorf("failed to create directory for %s: %w", tool.Name, err)
-		}
-
-		// Generate file
-		toolPath := filepath.Join(projectPath, tool.OutputPath)
-		if err := generateAIToolFile(toolPath, projectInfo, standards); err != nil {
-			return fmt.Errorf("failed to generate %s: %w", tool.OutputPath, err)
-		}
-
-		_, _ = fmt.Fprintf(out, "  ✓ %s updated\n", tool.OutputPath)
+	// Generate AI tool files using setup package
+	if err := setup.GenerateAIToolFiles(projectPath, projectInfo, cfg.AITools, standards, out); err != nil {
+		return fmt.Errorf("failed to generate AI tool files: %w", err)
 	}
 
 	// Update config (preserve selected AI tools)
