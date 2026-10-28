@@ -426,7 +426,7 @@ MIT License - 见 [LICENSE](LICENSE)
 **灵感来源：**
 - Google 风格指南
 - 《程序员修炼之道》
-- 吴军《态度》 - 三条边框架
+- 吴军《格局》 - "三条边"理论
 
 **构建目标：**
 - Claude Code
