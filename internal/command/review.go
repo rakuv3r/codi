@@ -47,7 +47,10 @@ func runReview(out io.Writer, dryRun bool) error {
 	}
 
 	// Generate review prompt
-	prompt := generateReviewPrompt(projectPath)
+	prompt, err := generateReviewPrompt(projectPath)
+	if err != nil {
+		return err
+	}
 
 	if dryRun {
 		// Print prompt and exit
@@ -60,40 +63,47 @@ func runReview(out io.Writer, dryRun bool) error {
 	return executeAITool(out, projectPath, prompt)
 }
 
-func generateReviewPrompt(projectPath string) string {
+func generateReviewPrompt(projectPath string) (string, error) {
 	var sb strings.Builder
 
-	// Header - instruct to use /code-review
-	sb.WriteString("# Code Review Task\n\n")
-	sb.WriteString("Please run the `/code-review` command to review this codebase.\n\n")
-	sb.WriteString("After the review completes:\n")
-	sb.WriteString("1. Read the findings\n")
-	sb.WriteString("2. Fix the issues according to the coding standards below\n")
-	sb.WriteString("3. Commit the fixes\n\n")
+	// Header - instruct /code-review to use our standards
+	sb.WriteString("/code-review using the following standards:\n\n")
 
-	// Load review checklist as additional context
+	// Load review checklist as primary criteria - REQUIRED
 	checklistPath := filepath.Join(projectPath, ".codi", "review-checklist.md")
 	checklist, err := os.ReadFile(checklistPath)
-	if err == nil {
-		sb.WriteString("## Additional Review Context\n\n")
-		sb.WriteString("Use this checklist as supplementary guidance:\n\n")
-		sb.Write(checklist)
-		sb.WriteString("\n\n")
+	if err != nil {
+		return "", fmt.Errorf("review checklist not found: %s (run 'codi sync' or 'codi adopt')", checklistPath)
 	}
+	sb.WriteString("## Review Checklist (Check All Items)\n\n")
+	sb.Write(checklist)
+	sb.WriteString("\n\n")
 
-	// Load standards reference
+	// Load standards reference - REQUIRED
 	claudePath := filepath.Join(projectPath, ".claude", "CLAUDE.md")
-	if claudeContent, err := os.ReadFile(claudePath); err == nil {
-		// Extract standards section
-		if idx := strings.Index(string(claudeContent), "## 📚 Coding Standards"); idx != -1 {
-			sb.WriteString("## Coding Standards Reference\n\n")
-			sb.WriteString("When fixing issues, reference these standards:\n\n")
-			sb.Write(claudeContent[idx:])
-			sb.WriteString("\n")
-		}
+	claudeContent, err := os.ReadFile(claudePath)
+	if err != nil {
+		return "", fmt.Errorf("CLAUDE.md not found: %s (run 'codi sync' or 'codi adopt')", claudePath)
 	}
 
-	return sb.String()
+	// Extract standards section - search from end to avoid false matches in examples
+	content := string(claudeContent)
+	marker := "## 📚 Coding Standards"
+	idx := strings.LastIndex(content, marker)
+	if idx == -1 {
+		return "", errors.New("coding standards section not found in CLAUDE.md (missing '## 📚 Coding Standards' header)")
+	}
+	sb.WriteString("## Coding Standards (Reference When Fixing)\n\n")
+	sb.WriteString(content[idx:])
+	sb.WriteString("\n")
+
+	sb.WriteString("\n## Review Requirements\n\n")
+	sb.WriteString("1. Check all checklist items\n")
+	sb.WriteString("2. Fix issues according to standards\n")
+	sb.WriteString("3. Run tests and lint to verify fixes\n")
+	sb.WriteString("4. Commit fixes with clear messages\n")
+
+	return sb.String(), nil
 }
 
 func executeAITool(out io.Writer, projectPath string, prompt string) error {
@@ -104,13 +114,13 @@ func executeAITool(out io.Writer, projectPath string, prompt string) error {
 	codexPath := filepath.Join(projectPath, ".codex", "AGENTS.md")
 
 	if _, err := os.Stat(claudePath); err == nil {
-		// Use Claude Code
+		// Use Claude Code - -p flag for non-interactive, prompt as positional arg
 		_, _ = fmt.Fprintln(out, "  Using: Claude Code")
-		cmd = exec.Command("claude", prompt)
+		cmd = exec.Command("claude", "-p", "--", prompt)
 	} else if _, err := os.Stat(codexPath); err == nil {
-		// Use Codex
+		// Use Codex - -p flag for non-interactive, prompt as positional arg
 		_, _ = fmt.Fprintln(out, "  Using: Codex")
-		cmd = exec.Command("codex", prompt)
+		cmd = exec.Command("codex", "-p", "--", prompt)
 	} else {
 		return errors.New("no AI tool detected (missing .claude/CLAUDE.md or .codex/AGENTS.md)")
 	}
