@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -171,6 +172,8 @@ func confirmConfiguration(out io.Writer, cfg *generator.ProjectConfig) bool {
 func generateProject(out io.Writer, cfg *generator.ProjectConfig, projectName string) error {
 	_, _ = fmt.Fprintln(out, "\nGenerating project...")
 
+	projectPath := projectName // Project is created in current dir
+
 	templatesDir := findTemplatesDir()
 
 	var gen *generator.Generator
@@ -195,7 +198,7 @@ func generateProject(out io.Writer, cfg *generator.ProjectConfig, projectName st
 		return fmt.Errorf("failed to generate project: %w", err)
 	}
 
-	printSuccessMessage(out, projectName)
+	printSuccessMessage(out, projectName, projectPath)
 	return nil
 }
 
@@ -221,13 +224,31 @@ func findTemplatesDir() string {
 	return templatesDir
 }
 
-func printSuccessMessage(out io.Writer, projectName string) {
+func printSuccessMessage(out io.Writer, projectName string, projectPath string) {
 	_, _ = fmt.Fprintf(out, "\n✓ Project created: %s\n\n", projectName)
 	_, _ = fmt.Fprintln(out, "Next steps:")
 	_, _ = fmt.Fprintf(out, "  cd %s\n", projectName)
 	_, _ = fmt.Fprintln(out, "  make setup")
 	_, _ = fmt.Fprintln(out, "  make build")
 	_, _ = fmt.Fprintln(out, "  make run")
+
+	// Ask if user wants to run setup now
+	_, _ = fmt.Fprintln(out)
+	if promptYesNo("Run 'make setup' now to install development tools and Git hooks?") {
+		_, _ = fmt.Fprintln(out, "\n🔧 Running make setup...")
+
+		setupCmd := exec.Command("make", "setup")
+		setupCmd.Dir = projectPath
+		setupCmd.Stdout = out
+		setupCmd.Stderr = out
+
+		if err := setupCmd.Run(); err != nil {
+			_, _ = fmt.Fprintf(out, "\n⚠️  Setup failed: %v\n", err)
+			_, _ = fmt.Fprintln(out, "You can run 'make setup' manually later.")
+		} else {
+			_, _ = fmt.Fprintln(out, "\n✅ Setup complete! You're ready to code.")
+		}
+	}
 }
 
 func selectGoModules(cfg *generator.ProjectConfig) {

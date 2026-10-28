@@ -254,10 +254,13 @@ func (g *Generator) renderTemplateContent(src, dst string, content []byte, cfg *
 		}
 	} else {
 		// Copy file as-is
-		if err := os.WriteFile(dst, content, FilePermission); err != nil {
-			return err
+		perm := os.FileMode(FilePermission)
+		if strings.Contains(dst, "/scripts/") || strings.Contains(dst, "/hooks/") || strings.HasSuffix(dst, ".sh") {
+			perm = 0755
 		}
-	}
+		if err := os.WriteFile(dst, content, perm); err != nil {
+			return fmt.Errorf("failed to write file: %w", err)
+		}	}
 
 	return nil
 }
