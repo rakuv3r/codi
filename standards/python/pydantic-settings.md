@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: []
+---
+
 # Configuration
 
 Python-specific configuration management patterns.

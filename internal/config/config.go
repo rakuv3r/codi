@@ -21,7 +21,6 @@ const (
 	ConfigFilename          = "config.yaml"
 	ClaudeMDFilename        = "CLAUDE.md"
 	ReviewChecklistFilename = "review-checklist.md"
-	ReviewManualFilename    = "review-manual.md"
 	ReadmeFilename          = "README.md"
 )
 

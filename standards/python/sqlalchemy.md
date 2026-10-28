@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: []
+---
+
 # Database
 
 Python-specific database patterns and implementations.

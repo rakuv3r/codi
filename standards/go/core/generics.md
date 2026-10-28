@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Go Generics Standards
 
 ## Overview

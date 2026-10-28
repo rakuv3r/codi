@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Testing
 
 Based on [Google Go Best Practices - Testing](https://google.github.io/styleguide/go/best-practices#tests).

@@ -1,4 +1,4 @@
-last_sync: 2026-10-27T18:50:05.201337+08:00
+last_sync: 2026-10-28T15:35:02.375394+08:00
 language: go
 project:
     type: cli
@@ -8,30 +8,32 @@ dependencies:
         - github.com/spf13/cobra
         - golang.org/x/mod
         - gopkg.in/yaml.v3
-        - slices
-        - text/template
-        - embed
-        - fmt
-        - errors
-        - strconv
-        - regexp
-        - runtime
-        - path/filepath
-        - bufio
-        - io
-        - github.com/rakuv3r/codi/internal/config
-        - github.com/rakuv3r/codi/internal/standard
-        - github.com/rakuv3r/codi/internal/generator
-        - time
-        - os
-        - github.com/rakuv3r/codi/internal/command
-        - strings
-        - go/token
-        - io/fs
         - github.com/rakuv3r/codi
         - github.com/rakuv3r/codi/internal/analyzer
+        - strconv
+        - bytes
+        - github.com/rakuv3r/codi/internal/command
+        - path/filepath
         - go/parser
         - golang.org/x/mod/modfile
+        - slices
+        - text/template
+        - os
+        - errors
+        - io
+        - github.com/rakuv3r/codi/internal/standard
+        - embed
+        - go/token
+        - io/fs
+        - github.com/rakuv3r/codi/internal/generator
+        - regexp
+        - fmt
+        - github.com/rakuv3r/codi/internal/config
+        - strings
+        - os/exec
+        - time
+        - runtime
+        - bufio
 ai_tools:
     - name: claude
       output_path: .claude/CLAUDE.md

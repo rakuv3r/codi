@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: []
+---
+
 # Pydantic Models
 
 Pydantic V2 patterns and best practices for data validation.

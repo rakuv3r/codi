@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Formatting
 
 Based on [Google Go Style Guide - Formatting](https://google.github.io/styleguide/go/guide#formatting).

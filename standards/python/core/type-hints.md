@@ -1,3 +1,9 @@
+---
+language: python
+category: core
+applies_to: []
+---
+
 # Type Hints
 
 Based on [typing best practices](https://typing.python.org/en/latest/reference/best_practices.html) and Python 3.10+ features.

@@ -1,3 +1,9 @@
+---
+language: universal
+category: universal
+applies_to: []
+---
+
 # Documentation
 
 Documentation standards for clear, maintainable project documentation.

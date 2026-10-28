@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: [cli]
+---
+
 # Cobra CLI Framework Standards
 
 ## Overview

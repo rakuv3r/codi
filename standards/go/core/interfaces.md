@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Interfaces
 
 Based on Go interface design best practices.

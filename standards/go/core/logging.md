@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Logging
 
 Logging principles and best practices (library-agnostic).

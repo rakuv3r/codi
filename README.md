@@ -1,435 +1,235 @@
 # codi
 
-**Quality infrastructure for AI coding agents.**
+**Quality framework for AI-driven development**
 
 [中文文档](README.zh-CN.md)
 
 ---
 
-## Philosophy: The Three Boundaries of Engineering
+## The Problem
 
-Every engineering problem exists within three boundaries that form a "Z" shape:
+AI writes code fast, but doesn't know your quality standards:
+- Missing error handling
+- Ignores architecture patterns
+- Requires constant reminders
+
+## The Solution
+
+```
+Standards first → AI writes by standards → AI reviews by standards → AI auto-fixes
+```
+
+codi provides the standards library + automation toolchain.
+
+---
+
+## Three Boundaries: The Essence of Engineering Quality
 
 ```mermaid
 graph BT
     B["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Baseline<br/>(make lint/test)"]
-    A["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Theoretical Limit<br/>(Best Practices & Patterns)"] 
+    A["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Theoretical Limit<br/>(Best Practices)"] 
     
-    B -->|"The Ladder<br/>(CR + AI)"| A
+    B -->|"The Ladder<br/>(codi review)"| A
     
     style A fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
     style B fill:#e3f2fd,stroke:#2196f3,stroke-width:3px
 ```
 
-**Inspired by 吴军's "Three Boundaries" framework from 《格局》**
+**Inspired by Wu Jun's "Three Boundaries" framework**
 
-### 1. Baseline (Lower Boundary)
-**What tools guarantee automatically.**
-
-- `make lint` - golangci-lint, ruff, type checkers
-- `make test` - Automated test suites  
-- Git hooks - Pre-commit validation
-
-**Purpose:** Catch trivial errors before human review.
-
-### 2. Theoretical Limit (Upper Boundary)
-**What's possible given current knowledge.**
-
-- Google Go Style Guide + production patterns
-- PEP 8 + framework best practices
-- Security baselines, performance patterns
-
-**Purpose:** Know what good code looks like.
-
-### 3. The Ladder (Climbing Path)
-**How you systematically climb from baseline to limit.**
-
-```
-Code → CR (find gaps) → AI fixes (apply standards) → CR (verify) → Repeat
-```
-
-**codi's role:**
-- Provides the **limit** (curated standards)
-- Lowers the **ladder cost** (AI auto-applies standards)
-- Ensures the **baseline** (project templates with tooling)
-
-**The difference between professionals and amateurs:**
-- Amateurs don't know the limit exists
-- Beginners have a low baseline  
-- Professionals know both boundaries and climb the ladder systematically
+- **Baseline**: Guaranteed by tools (lint, test)
+- **Limit**: Defined by best practices (error handling, architecture)
+- **Ladder**: The climb from baseline to limit (codi review)
 
 ---
 
-## What is codi?
+## What codi Does
 
-A unified code quality system for AI-assisted development.
+### 1. Define Standards (The Limit)
 
-**Core Features:**
-- **Standards Library** - Curated coding standards (Go, Python)
-- **Project Templates** - Pre-configured tooling (lint, test, build)
-- **AI Integration** - Auto-generates configuration for Claude Code, Codex, Cursor
-- **Code Review Workflows** - AI automated checks + human review guides
+Standards files define project quality rules:
 
-**Why it matters:**
-- AI writes code faster than ever
-- Quality standards prevent AI from writing bad code at scale
-- codi makes standards machine-readable for AI agents
+```
+standards/
+├── universal/           # All projects
+│   ├── security-principles.md
+│   ├── database-principles.md
+│   └── api-design.md
+├── go/
+│   ├── core/            # Go core
+│   │   ├── error-handling.md
+│   │   ├── concurrency.md
+│   │   └── interfaces.md
+│   └── github.com/gin-gonic/gin.md  # Dependency standards
+└── python/
+    ├── core/
+    └── fastapi.md
+```
+
+**Zero-mapping**: dependency path = standard path
+```
+import "github.com/gin-gonic/gin"
+       ↓
+standards/go/github.com/gin-gonic/gin.md
+```
+
+### 2. Automate The Ladder (Review Command)
+
+```bash
+codi review              # AI auto-review + fix
+```
+
+**How it works**:
+1. Invokes AI's `/code-review` capability
+2. Loads project standards as context
+3. AI finds issues → reads standards → fixes → commits
+
+**This is the ladder: AI automatically pushes code from baseline to limit.**
+
+### 3. Provide Scaffolding (The Baseline)
+
+```bash
+codi init my-api         # Generate project skeleton
+```
+
+**Not a code generator, but a development framework**:
+- Directory structure (following standards)
+- Toolchain config (lint, test, hooks)
+- Makefile (unified command interface)
+- Standards files (.claude/CLAUDE.md)
+
+**You fill in business logic, tools guarantee quality baseline.**
 
 ---
 
-## Installation
+## 5-Minute Quickstart
 
-### From Source
-
-```bash
-git clone https://github.com/rakuv3r/codi.git
-cd codi
-make build
-sudo cp bin/codi /usr/local/bin/
-```
-
-Or without sudo:
-```bash
-cp bin/codi ~/.local/bin/  # Make sure ~/.local/bin is in your PATH
-```
-
-### From Release (Coming Soon)
+### New Project
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rakuv3r/codi/main/install.sh | bash
+# 1. Generate project
+codi init my-api
+cd my-api
+
+# 2. See what's generated
+ls -la
+# .claude/CLAUDE.md              ← AI's project knowledge base
+# .codi/standards/                ← Standards files (local copy)
+# Makefile                        ← make lint/test/build
+
+# 3. Write code
+vim internal/handler/user.go
+
+# 4. AI auto-review
+codi review
+
+# 5. Commit
+git commit -m "feat: add user handler"
 ```
 
----
-
-## Quick Start
-
-### Adopt Existing Project
+### Existing Project
 
 ```bash
 cd your-project
+
+# 1. Analyze project, generate standards config
 codi adopt
-```
 
-**What it does:**
-1. Detects language (Go/Python)
-2. Analyzes dependencies
-3. Generates AI tool config files (`.claude/CLAUDE.md`, `.codex/AGENTS.md`)
-4. Creates `.codi/config.yaml` with project metadata
-5. Adds quality tools (Makefile, linters) if missing
+# 2. AI review
+codi review
 
-**Result:** AI agents now see your standards automatically.
-
----
-
-### Create New Project
-
-```bash
-codi init my-api
-cd my-api
-make setup && make build
-```
-
-**Interactive prompts:**
-- Language? (Go, Python)
-- Type? (CLI, API)
-- Modules? (Gin, Cobra, FastAPI, etc.)
-- AI tools? (Claude, Codex, Cursor)
-
-**Generated structure:**
-```
-my-api/
-├── .codi/
-│   └── config.yaml          # Project metadata
-├── .claude/
-│   ├── CLAUDE.md            # Standards for Claude Code
-│   ├── review-checklist.md  # AI automated checks
-│   └── review-manual.md     # Human review guide
-├── Makefile                 # lint, test, build, run
-├── .golangci.yml            # Linter config
-└── cmd/main.go              # Scaffold code
+# Done! AI now knows project standards
 ```
 
 ---
 
-## The Ladder: Code Review Workflow
+## Core Value
 
-### Step 1: Baseline Check (Automated)
-```bash
-make lint  # Format, types, common issues
-make test  # Unit tests pass
+### Not a Tool, But a Workflow
+
+**codi is NOT**:
+- ❌ Code generator (that's AI's job)
+- ❌ Linter (that's baseline tools)
+- ❌ Documentation generator
+
+**codi IS**:
+- ✅ Standards definition and distribution system
+- ✅ AI-driven quality automation loop
+- ✅ Evolvable development framework
+
+### Key Design Principles
+
+**1. Standards as Code**
+```markdown
+Markdown files = Human-readable + AI-parseable + Git-manageable
 ```
 
-### Step 2: AI Review (review-checklist.md)
-**AI runs 70% of checks automatically:**
-- Build/test quality
-- Error handling patterns
-- Security basics (SQL injection, XSS)
-- Performance anti-patterns
+**2. Dependency-Driven**
+```
+Use Gin → Show Gin standards
+Don't use Django → Don't show Django standards
+```
 
-### Step 3: Human Review (review-manual.md)
-**Focus on what AI cannot judge:**
-- Architecture decisions
-- Business logic correctness
-- API design
-- Scalability considerations
+**3. Zero-Config**
+```
+Dependency path = Standard path (zero-mapping)
+Project type auto-detected (CLI/API)
+Standards auto-filtered (relevant only)
+```
 
-### Step 4: AI Fixes Issues
-**Paste CR feedback → AI reads standards → AI fixes code**
-
-**Repeat 2-4 until code reaches the limit.**
-
----
-
-## Standards System
-
-### Universal Standards
-- Git workflow (branching, commits)
-- Documentation (README, API docs, ADR)
-- Security baseline (secrets, dependencies)
-
-### Go Standards
-- Based on [Google Go Style Guide](https://google.github.io/styleguide/go/)
-- Extensions: HTTP handler patterns, client-go usage, Neo4j batching
-
-### Python Standards
-- Based on PEP 8, [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
-- Extensions: Django ORM patterns, FastAPI validation, async best practices
-
-### Dependency-Specific Standards
-**Auto-loaded based on your imports:**
-- `github.com/gin-gonic/gin` → Gin middleware patterns
-- `github.com/spf13/cobra` → CLI design patterns
-- `sqlalchemy` → ORM transaction management
-- `fastapi` → Dependency injection, validation
-
-**Zero-mapping:** Dependency path = Standard path
-- `github.com/gin-gonic/gin` → `standards/go/github.com/gin-gonic/gin.md`
+**4. Composable**
+```
+Baseline (tools) + Limit (standards) + Ladder (review) = Quality
+```
 
 ---
 
 ## CLI Reference
 
 ```bash
+codi init <name>        # Create project framework
 codi adopt              # Integrate into existing project
-codi init <name>        # Create new project
-codi sync               # Update standards after dependency changes
-codi status             # Show project configuration
-codi view [language]    # Browse standards interactively
+codi sync               # Update after dependency changes
+codi review             # AI auto-review + fix
+codi review --dry-run   # Preview prompt
+codi status             # Project status
+codi view [language]    # Browse standards
 ```
 
 ---
 
-## Contributing
+## Extending codi
 
-We welcome contributions! Here's how to extend codi:
+### Add New Language
 
-### Add Support for a New Language
-
-**1. Create language structure:**
 ```bash
-mkdir -p standards/{language}/core
-mkdir -p templates/{language}/base/{cli,api}
-mkdir -p templates/{language}/module
+# 1. Create standards directory
+mkdir -p standards/rust/core
+
+# 2. Write standards files
+cat > standards/rust/core/error-handling.md << 'EOF'
+# Rust Error Handling
+
+Use `Result<T, E>` for recoverable errors...
+EOF
+
+# 3. Implement analyzer (optional)
+# internal/analyzer/rust.go
 ```
 
-**2. Add core standards:**
+### Add New Library Standard
+
 ```bash
-# standards/rust/core/
-- formatting.md
-- error-handling.md
-- testing.md
+# Zero-mapping: path = file path
+# Using tokio/axum?
+
+echo "# axum Best Practices" > standards/rust/tokio/axum.md
+# Done! Auto-loads on next codi sync
 ```
-
-**3. Implement analyzer:**
-```go
-// internal/analyzer/rust.go
-type RustAnalyzer struct{}
-
-func (a *RustAnalyzer) Analyze(projectPath string) (*DependencyList, error) {
-    // Parse Cargo.toml
-    // Return dependencies
-}
-```
-
-**4. Add templates:**
-```bash
-# templates/rust/base/cli/
-- Cargo.toml.tmpl
-- main.rs.tmpl
-- Makefile.tmpl
-```
-
-**5. Update detector:**
-```go
-// internal/analyzer/detector.go
-case "Cargo.toml":
-    return LanguageRust, nil
-```
-
----
-
-### Add a Library Standard
-
-**Example: Add `axum` (Rust web framework)**
-
-**1. Create standard file:**
-```bash
-# standards/rust/crates.io/axum.md
-```
-
-**2. Write standard:**
-````markdown
-# axum
-
-## Router Organization
-```rust
-// Group related routes with Router::nest
-let api = Router::new()
-    .route("/users", get(list_users).post(create_user))
-    .route("/users/:id", get(get_user));
-
-let app = Router::new()
-    .nest("/api/v1", api)
-    .layer(TraceLayer::new_for_http());
-```
-
-## Error Handling
-- Use `Result<T, AppError>` for fallible handlers
-- Implement `IntoResponse` for custom error types
-- Log errors with tracing before converting to HTTP responses
-````
-
-**3. Test:**
-```bash
-# In a Rust project with axum
-codi adopt
-# Check .claude/CLAUDE.md includes axum standards
-```
-
-**That's it!** Zero-mapping means codi auto-discovers it.
-
----
-
-### Add a Code Review Check
-
-**Edit `.claude/review-checklist.md`:**
-
-```markdown
-## Security
-
-### Input Validation
-- [ ] All user inputs validated
-- [ ] SQL queries use parameterized statements
-- [ ] File paths sanitized (no `../` traversal)
-- [ ] API rate limiting implemented  ← NEW CHECK
-```
-
-**AI will now check this automatically.**
-
----
-
-### Project Structure
-
-```
-codi/
-├── standards/           # The "limit" - best practices
-│   ├── universal/       # Language-agnostic
-│   ├── go/
-│   │   ├── core/        # Language fundamentals
-│   │   └── github.com/  # Library-specific (zero-mapped)
-│   └── python/
-│       ├── core/
-│       └── pypi/         # Package standards
-│
-├── templates/           # Project scaffolds
-│   ├── go/
-│   │   ├── base/        # cli, api
-│   │   └── module/      # gin, cobra, testify
-│   └── python/
-│       ├── base/
-│       └── module/      # fastapi, pytest
-│
-├── internal/
-│   ├── analyzer/        # Detect language, parse deps
-│   ├── generator/       # Scaffold projects
-│   ├── standard/        # Load and serve standards
-│   └── command/         # CLI commands
-│
-└── cmd/codi/main.go
-```
-
----
-
-### Validation: The Simplicity Test
-
-**Can someone add support for a new library in under 10 minutes?**
-
-**Yes:**
-1. Create `standards/{lang}/{path}.md` (5 min to write)
-2. Run `codi adopt` in test project (1 min)
-3. Verify AI sees the standard (1 min)
-
-**If it takes longer, the design failed.**
-
----
-
-## Design Principles
-
-### 1. Reference Authority, Don't Reinvent
-- Google Style Guides
-- PEP 8
-- Language-specific idioms
-
-**Add only:**
-- Real-world patterns not in guides
-- Dependency-specific usage
-
-### 2. Machine-Readable Standards
-- Standards are for AI agents, not just humans
-- Markdown format: human-readable, AI-parseable
-- Code examples in every standard
-
-### 3. Zero-Mapping
-- Dependency path = Standard path
-- No config files to maintain
-- Drop in a `.md` file, it works
-
-### 4. Composable Quality
-```
-Baseline (tools) + Standards (limit) + CR (ladder) = Quality
-```
-
-Each layer is independent but synergistic.
-
----
-
-## Roadmap
-
-- [ ] Rust support
-- [ ] TypeScript support
-- [ ] Java support
-- [ ] LSP integration (real-time standard hints in IDE)
-- [ ] CI integration (auto-CR in GitHub Actions)
-- [ ] Standard versioning (pin to specific standard versions)
 
 ---
 
 ## License
 
 MIT License - see [LICENSE](LICENSE)
-
----
-
-## Acknowledgments
-
-**Inspired by:**
-- Google Style Guides
-- The Pragmatic Programmer  
-- 吴军《格局》 - The "Three Boundaries" (三条边) framework
-
-**Built for:**
-- Claude Code
-- GitHub Copilot
-- OpenAI Codex
-- Cursor
-- Any AI coding assistant that reads project context

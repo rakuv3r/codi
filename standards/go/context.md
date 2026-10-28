@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Context
 
 Based on [Google Go Best Practices - Context](https://google.github.io/styleguide/go/best-practices#contexts).

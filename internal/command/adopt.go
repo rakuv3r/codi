@@ -232,7 +232,7 @@ func generateAdoptFiles(out io.Writer, projectPath string, projectInfo *analyzer
 
 		// Generate file
 		toolPath := filepath.Join(projectPath, tool.OutputPath)
-		if err := generateAIToolFile(toolPath, projectInfo, deps, standards); err != nil {
+		if err := generateAIToolFile(toolPath, projectInfo, standards); err != nil {
 			return fmt.Errorf("failed to generate %s: %w", tool.OutputPath, err)
 		}
 
@@ -253,55 +253,38 @@ func printAdoptSuccessMessage(out io.Writer) {
 	_, _ = fmt.Fprintln(out, "\n✅ Project successfully integrated with codi!")
 	_, _ = fmt.Fprintln(out, "\nNext steps:")
 	_, _ = fmt.Fprintln(out, "  - Review AI tool files (.claude/CLAUDE.md, .codex/AGENTS.md)")
-	_, _ = fmt.Fprintln(out, "  - Review .claude/review-checklist.md (AI automated checks)")
-	_, _ = fmt.Fprintln(out, "  - Review .claude/review-manual.md (human review guide)")
+	_, _ = fmt.Fprintln(out, "  - Review .codi/review-checklist.md (AI automated checks)")
 	_, _ = fmt.Fprintln(out, "  - Run 'codi sync' after adding dependencies")
 	_, _ = fmt.Fprintln(out, "  - Install Git hooks: ./scripts/install_hooks.sh")
 }
 
 func copyReviewTemplates(out io.Writer, codiRoot, projectPath string) {
-	claudeDir := filepath.Join(projectPath, config.ClaudeDirName)
+	codiDir := filepath.Join(projectPath, config.CodiDirName)
 
-	// Create .claude directory if needed
-	if err := os.MkdirAll(claudeDir, config.DirPermission); err != nil {
+	// Create .codi directory if needed
+	if err := os.MkdirAll(codiDir, config.DirPermission); err != nil {
 		return
 	}
 
-	var checklistData, manualData []byte
+	var checklistData []byte
 	var err error
 
 	if codiRoot == "" {
 		// Use embedded files
 		checklistData, err = fs.ReadFile(codi.EmbeddedFS, filepath.Join("standards", config.ReviewChecklistFilename))
 		if err == nil {
-			checklistDest := filepath.Join(claudeDir, config.ReviewChecklistFilename)
+			checklistDest := filepath.Join(codiDir, config.ReviewChecklistFilename)
 			if writeErr := os.WriteFile(checklistDest, checklistData, config.ConfigPermission); writeErr == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-checklist.md created")
-			}
-		}
-
-		manualData, err = fs.ReadFile(codi.EmbeddedFS, filepath.Join("standards", config.ReviewManualFilename))
-		if err == nil {
-			manualDest := filepath.Join(claudeDir, config.ReviewManualFilename)
-			if writeErr := os.WriteFile(manualDest, manualData, config.ConfigPermission); writeErr == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-manual.md created")
+				_, _ = fmt.Fprintln(out, "  ✓ .codi/review-checklist.md created")
 			}
 		}
 	} else {
 		// Use disk files
 		checklistSrc := filepath.Join(codiRoot, config.StandardsDirName, config.ReviewChecklistFilename)
-		checklistDest := filepath.Join(claudeDir, config.ReviewChecklistFilename)
+		checklistDest := filepath.Join(codiDir, config.ReviewChecklistFilename)
 		if data, err := os.ReadFile(checklistSrc); err == nil {
 			if err := os.WriteFile(checklistDest, data, config.ConfigPermission); err == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-checklist.md created")
-			}
-		}
-
-		manualSrc := filepath.Join(codiRoot, config.StandardsDirName, config.ReviewManualFilename)
-		manualDest := filepath.Join(claudeDir, config.ReviewManualFilename)
-		if data, err := os.ReadFile(manualSrc); err == nil {
-			if err := os.WriteFile(manualDest, data, config.ConfigPermission); err == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .claude/review-manual.md created")
+				_, _ = fmt.Fprintln(out, "  ✓ .codi/review-checklist.md created")
 			}
 		}
 	}

@@ -1,3 +1,9 @@
+---
+language: python
+category: core
+applies_to: []
+---
+
 # Async Programming
 
 Async/await patterns and best practices for Python asynchronous code.

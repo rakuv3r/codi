@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Error Handling
 
 Based on [Google Go Best Practices - Errors](https://google.github.io/styleguide/go/best-practices#errors).

@@ -158,6 +158,12 @@ func regenerateProject(out io.Writer, projectPath string, projectInfo *analyzer.
 	}
 
 	_, _ = fmt.Fprintf(out, "  ✓ Standards: %d loaded\n", standards.Count())
+
+	// Copy standards to .codi/standards/
+	if err := copyStandardsToProject(projectPath, standards, codiRoot); err != nil {
+		return fmt.Errorf("failed to copy standards: %w", err)
+	}
+
 	_, _ = fmt.Fprintln(out, "\n📝 Updating AI tool files...")
 
 	// Generate AI tool files based on config
@@ -174,7 +180,7 @@ func regenerateProject(out io.Writer, projectPath string, projectInfo *analyzer.
 
 		// Generate file
 		toolPath := filepath.Join(projectPath, tool.OutputPath)
-		if err := generateAIToolFile(toolPath, projectInfo, deps, standards); err != nil {
+		if err := generateAIToolFile(toolPath, projectInfo, standards); err != nil {
 			return fmt.Errorf("failed to generate %s: %w", tool.OutputPath, err)
 		}
 
@@ -193,7 +199,15 @@ func regenerateProject(out io.Writer, projectPath string, projectInfo *analyzer.
 	return nil
 }
 
-func generateAIToolFile(path string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList, standards any) error {
+func generateAIToolFile(path string, projectInfo *analyzer.ProjectInfo, standards any) error {
+	content := buildAIToolContent(projectInfo, standards)
+	return os.WriteFile(path, []byte(content), config.FilePermission)
+}
+
+func buildAIToolContent(projectInfo *analyzer.ProjectInfo, standards any) string {
+	// Convert standards to typed list
+	stdList, _ := standards.(*standard.List)
+
 	content := fmt.Sprintf("# %s\n\n", projectInfo.Name)
 	content += "## Project Information\n\n"
 	content += fmt.Sprintf("- **Language**: %s\n", projectInfo.Language)
@@ -204,21 +218,125 @@ func generateAIToolFile(path string, projectInfo *analyzer.ProjectInfo, deps *an
 	if projectInfo.Database != "" {
 		content += fmt.Sprintf("- **Database**: %s\n", projectInfo.Database)
 	}
-	content += "\n## Dependencies\n\n"
-	content += fmt.Sprintf("Total: %d\n\n", len(deps.Dependencies))
-	var contentSb strings.Builder
-	for _, dep := range deps.Dependencies {
-		fmt.Fprintf(&contentSb, "- %s\n", dep.Path)
-	}
-	content += contentSb.String()
+
 	content += "\n---\n\n"
-	content += "## Coding Standards\n\n"
-	content += "This project follows the standards below. All code generation and modifications should adhere to these standards.\n\n"
+	content += "## 📚 Coding Standards (READ BEFORE CODING)\n\n"
+	content += "**AI: Before generating ANY code, read the relevant standard file!**\n\n"
 
-	// Add standards references
-	if standards != nil {
-		content += "See codi standards directory for detailed coding standards.\n"
+	// Add standards router
+	if stdList != nil {
+		content += "### Quick Router\n\n"
+
+		// Universal standards (applies to all projects)
+		if len(stdList.Universal) > 0 {
+			content += "**Universal (All Projects):**\n"
+			var contentSb233 strings.Builder
+			for _, std := range stdList.Universal {
+				if shouldIncludeStandard(&std, projectInfo.ProjectType) {
+					fmt.Fprintf(&contentSb233, "- %s → `.codi/standards/%s`\n", formatStandardName(std.Name), std.Path)
+				}
+			}
+			content += contentSb233.String()
+			content += "\n"
+		}
+
+		// Core standards (language-specific, filtered by project type)
+		if len(stdList.Core) > 0 {
+			content += "**Core Standards:**\n"
+			var contentSb244 strings.Builder
+			for _, std := range stdList.Core {
+				if shouldIncludeStandard(&std, projectInfo.ProjectType) {
+					fmt.Fprintf(&contentSb244, "- %s → `.codi/standards/%s`\n", formatStandardName(std.Name), std.Path)
+				}
+			}
+			content += contentSb244.String()
+			content += "\n"
+		}
+
+		// Dependency standards (filtered by project type)
+		if len(stdList.Dependencies) > 0 {
+			content += "**Dependencies:**\n"
+			var contentSb255 strings.Builder
+			for _, std := range stdList.Dependencies {
+				if shouldIncludeStandard(&std, projectInfo.ProjectType) {
+					fmt.Fprintf(&contentSb255, "- %s → `.codi/standards/%s`\n", std.Dependency.Path, std.Path)
+				}
+			}
+			content += contentSb255.String()
+		}
 	}
 
-	return os.WriteFile(path, []byte(content), config.FilePermission)
+	return content
+}
+
+// formatStandardName converts kebab-case to readable format
+func formatStandardName(name string) string {
+	words := strings.Split(name, "-")
+	for i, word := range words {
+		if len(word) > 0 {
+			words[i] = strings.ToUpper(word[:1]) + word[1:]
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+// shouldIncludeStandard checks if a standard applies to the project type.
+func shouldIncludeStandard(std *standard.Standard, projectType analyzer.ProjectType) bool {
+	// Empty AppliesTo means applies to all projects
+	if len(std.AppliesTo) == 0 {
+		return true
+	}
+
+	// Check if project type is in AppliesTo list
+	projectTypeStr := string(projectType)
+	for _, t := range std.AppliesTo {
+		if t == projectTypeStr {
+			return true
+		}
+	}
+
+	return false
+}
+
+// copyStandardsToProject copies standard files to .codi/standards/.
+func copyStandardsToProject(projectPath string, standards *standard.List, codiRoot string) error {
+	destBase := filepath.Join(projectPath, ".codi", "standards")
+
+	// Get source filesystem
+	var srcFS fs.FS
+	if codiRoot == "" {
+		// Use embedded standards
+		var err error
+		srcFS, err = fs.Sub(codi.EmbeddedFS, "standards")
+		if err != nil {
+			return fmt.Errorf("failed to access embedded standards: %w", err)
+		}
+	} else {
+		// Use disk standards
+		srcFS = os.DirFS(filepath.Join(codiRoot, "standards"))
+	}
+
+	// Copy all standards
+	for _, std := range standards.AllStandards() {
+		srcPath := std.Path
+		destPath := filepath.Join(destBase, std.Path)
+
+		// Create parent directory
+		if err := os.MkdirAll(filepath.Dir(destPath), config.DirPermission); err != nil {
+			return fmt.Errorf("failed to create directory for %s: %w", std.Path, err)
+		}
+
+		// Read source
+		content, err := fs.ReadFile(srcFS, srcPath)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", srcPath, err)
+		}
+
+		// Write destination
+		if err := os.WriteFile(destPath, content, config.FilePermission); err != nil {
+			return fmt.Errorf("failed to write %s: %w", destPath, err)
+		}
+	}
+
+	return nil
 }

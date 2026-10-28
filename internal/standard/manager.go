@@ -1,11 +1,14 @@
 package standard
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/rakuv3r/codi/internal/analyzer"
 )
@@ -97,12 +100,22 @@ func (m *Manager) loadDirectory(dirPath string) ([]Standard, error) {
 		fullPath := filepath.Join(dirPath, entry.Name())
 		name := strings.TrimSuffix(entry.Name(), ".md")
 
+		// Read file content to parse frontmatter
+		content, err := fs.ReadFile(m.fsys, fullPath)
+		if err != nil {
+			continue // Skip if cannot read
+		}
+
+		metadata := parseFrontmatter(content)
+
 		standards = append(standards, Standard{
 			Name:       name,
 			Path:       fullPath,
 			FullPath:   fullPath,
 			Source:     SourceOfficial,
 			Dependency: nil,
+			Category:   metadata.Category,
+			AppliesTo:  metadata.AppliesTo,
 		})
 	}
 
@@ -171,4 +184,37 @@ func (m *Manager) langDir(lang analyzer.Language) string {
 	default:
 		return lang.String()
 	}
+}
+
+// frontmatterMetadata holds parsed frontmatter fields.
+type frontmatterMetadata struct {
+	Language  string   `yaml:"language"`
+	Category  string   `yaml:"category"`
+	AppliesTo []string `yaml:"applies_to"`
+}
+
+// parseFrontmatter extracts metadata from YAML frontmatter.
+func parseFrontmatter(content []byte) frontmatterMetadata {
+	metadata := frontmatterMetadata{
+		AppliesTo: []string{}, // Default: empty means applies to all
+	}
+
+	// Check for frontmatter: must start with "---\n"
+	if !bytes.HasPrefix(content, []byte("---\n")) {
+		return metadata
+	}
+
+	// Find the closing "---"
+	endIdx := bytes.Index(content[4:], []byte("\n---\n"))
+	if endIdx == -1 {
+		return metadata
+	}
+
+	// Extract YAML content between delimiters
+	yamlContent := content[4 : 4+endIdx]
+
+	// Parse YAML
+	_ = yaml.Unmarshal(yamlContent, &metadata)
+
+	return metadata
 }

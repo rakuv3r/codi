@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: [cli]
+---
+
 # Go CLI Project Structure
 
 ## Overview

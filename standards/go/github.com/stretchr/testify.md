@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Testify Testing Framework Standards
 
 ## Overview

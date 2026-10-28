@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Concurrency
 
 Based on [Google Go Best Practices - Concurrency](https://google.github.io/styleguide/go/best-practices#concurrency).

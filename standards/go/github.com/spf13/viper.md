@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Configuration
 
 Go-specific configuration management patterns.

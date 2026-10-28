@@ -1,3 +1,9 @@
+---
+language: universal
+category: universal
+applies_to: []
+---
+
 # Design Principles
 
 Based on [Software Engineering Principles](https://www.callicoder.com/software-development-principles/), [SOLID Principles](https://designgurus.io/blog/essential-software-design-principles-you-should-know-before-the-interview), and [System Design Principles](https://blog.paulserban.eu/post/system-design-principles-dry-solid-yagni-and-design-patterns/).

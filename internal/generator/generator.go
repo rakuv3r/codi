@@ -260,7 +260,8 @@ func (g *Generator) renderTemplateContent(src, dst string, content []byte, cfg *
 		}
 		if err := os.WriteFile(dst, content, perm); err != nil {
 			return fmt.Errorf("failed to write file: %w", err)
-		}	}
+		}
+	}
 
 	return nil
 }

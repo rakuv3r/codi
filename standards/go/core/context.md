@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Context
 
 Context management principles and best practices (library-agnostic).

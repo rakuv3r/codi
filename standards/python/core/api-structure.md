@@ -1,3 +1,9 @@
+---
+language: python
+category: core
+applies_to: [api]
+---
+
 # Python API Project Structure
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # database/sql Standards
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+language: universal
+category: universal
+applies_to: []
+---
+
 # Security Principles
 
 Based on [OWASP API Security Top 10](https://owasp.org/API-Security/editions/2023/en/0x11-t10/), [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), and [OAuth 2.1 Best Practices](https://daily.dev/blog/dev-guide-api-security-oauth-2-1-jwt-vulnerabilities).

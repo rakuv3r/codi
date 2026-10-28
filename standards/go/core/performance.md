@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Performance
 
 Based on Go performance optimization best practices.

@@ -20,6 +20,10 @@ type Standard struct {
 	FullPath   string
 	Source     Source
 	Language   analyzer.Language
+
+	// Metadata from frontmatter
+	Category  string   // core, universal, dependency
+	AppliesTo []string // Project types: cli, api, lib
 }
 
 // List categorizes standards by type.

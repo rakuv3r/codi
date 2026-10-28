@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Database
 
 Go-specific database patterns and implementations.

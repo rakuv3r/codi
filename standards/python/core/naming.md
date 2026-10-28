@@ -1,3 +1,9 @@
+---
+language: python
+category: core
+applies_to: []
+---
+
 # Naming
 
 Based on [PEP 8](https://peps.python.org/pep-0008/) and [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html).

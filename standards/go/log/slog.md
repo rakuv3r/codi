@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: []
+---
+
 # Logging
 
 Go-specific logging patterns using standard library `log/slog`.

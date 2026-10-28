@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Comments
 
 Based on [Google Go Style Guide - Commentary](https://google.github.io/styleguide/go/decisions#commentary).

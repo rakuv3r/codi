@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: [api]
+---
+
 # Go API Project Structure
 
 ## Overview

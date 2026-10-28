@@ -1,3 +1,9 @@
+---
+language: go
+category: dependency
+applies_to: [api]
+---
+
 # Gin Web Framework Standards
 
 ## Overview

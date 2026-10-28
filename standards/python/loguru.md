@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: []
+---
+
 # Logging
 
 Python-specific logging patterns using loguru.

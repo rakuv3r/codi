@@ -21,6 +21,7 @@ making AI coding assistants follow your project's conventions automatically.`,
 	cmd.AddCommand(NewSyncCmd())
 	cmd.AddCommand(NewStatusCmd())
 	cmd.AddCommand(NewViewCmd())
+	cmd.AddCommand(NewReviewCmd())
 
 	return cmd
 }

@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: [api]
+---
+
 # Security
 
 Python-specific security implementations.

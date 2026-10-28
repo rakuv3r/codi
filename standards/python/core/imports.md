@@ -1,3 +1,9 @@
+---
+language: python
+category: core
+applies_to: []
+---
+
 # Imports
 
 Based on [PEP 8](https://peps.python.org/pep-0008/) import conventions.

@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Naming
 
 Based on [Google Go Style Guide - Naming](https://google.github.io/styleguide/go/decisions#naming).

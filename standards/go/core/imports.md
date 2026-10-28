@@ -1,3 +1,9 @@
+---
+language: go
+category: core
+applies_to: []
+---
+
 # Imports
 
 Based on [Google Go Style Guide - Imports](https://google.github.io/styleguide/go/decisions#imports).

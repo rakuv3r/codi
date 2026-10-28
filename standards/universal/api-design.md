@@ -1,3 +1,9 @@
+---
+language: universal
+category: universal
+applies_to: [api]
+---
+
 # API Design
 
 Based on [Microsoft Azure API Design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design), [Google API Design Guide](https://cloud.google.com/apis/design), and [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html).

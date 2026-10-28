@@ -1,3 +1,9 @@
+---
+language: python
+category: dependency
+applies_to: [api]
+---
+
 # FastAPI Framework Patterns
 
 FastAPI-specific patterns and best practices for async HTTP services.

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rakuv3r/codi"
+	"github.com/rakuv3r/codi/internal/config"
 	"github.com/rakuv3r/codi/internal/generator"
 )
 
@@ -198,6 +199,16 @@ func generateProject(out io.Writer, cfg *generator.ProjectConfig, projectName st
 		return fmt.Errorf("failed to generate project: %w", err)
 	}
 
+	// Auto-sync to generate AI tool files
+	if err := runSyncForProject(out, projectPath); err != nil {
+		// Non-fatal: project created successfully, just warn about sync failure
+		_, _ = fmt.Fprintf(out, "\n⚠️  Warning: failed to generate AI tool files: %v\n", err)
+		_, _ = fmt.Fprintln(out, "Run 'codi sync' manually to generate them.")
+	}
+
+	// Copy review-checklist.md (use embed)
+	copyReviewTemplates(out, "", projectPath)
+
 	printSuccessMessage(out, projectName, projectPath)
 	return nil
 }
@@ -222,6 +233,26 @@ func findTemplatesDir() string {
 	}
 
 	return templatesDir
+}
+
+func runSyncForProject(out io.Writer, projectPath string) error {
+	// Load config from the newly created project
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Analyze dependencies
+	deps, err := analyzeDependencies(cfg.Language, projectPath)
+	if err != nil {
+		return fmt.Errorf("failed to analyze dependencies: %w", err)
+	}
+
+	// Rebuild project info
+	projectInfo := rebuildProjectInfo(cfg, projectPath, deps)
+
+	// Generate AI tool files (reuse from sync.go)
+	return regenerateProject(out, projectPath, projectInfo, deps, cfg)
 }
 
 func printSuccessMessage(out io.Writer, projectName string, projectPath string) {

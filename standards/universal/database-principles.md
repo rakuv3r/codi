@@ -1,3 +1,9 @@
+---
+language: universal
+category: universal
+applies_to: []
+---
+
 # Database Patterns
 
 Based on [Postgres Best Practices](https://supabase.com/blog/postgres-best-practices-for-ai-agents), [Transaction Isolation Guide](https://codemia.io/courses/system_design_fundamentals/transaction_isolation_level), and [Database Optimization](https://blog.easecloud.io/cloud-infrastructure/optimization-for-slow-queries-and-indexing-issues/).
