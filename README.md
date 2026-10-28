@@ -1,231 +1,231 @@
 # codi
 
-**Quality framework for AI-driven development**
+**AI 驱动开发的质量框架**
 
-[中文文档](README.zh-CN.md)
-
----
-
-## The Problem
-
-AI writes code fast, but doesn't know your quality standards:
-- Missing error handling
-- Ignores architecture patterns
-- Requires constant reminders
-
-## The Solution
-
-```
-Standards first → AI writes by standards → AI reviews by standards → AI auto-fixes
-```
-
-codi provides the standards library + automation toolchain.
+[English](README.md)
 
 ---
 
-## Three Boundaries: The Essence of Engineering Quality
+## 问题
+
+AI 写代码很快，但不知道你的质量标准：
+- 错误处理缺失
+- 不遵循架构规范
+- 每次都要重复提醒
+
+## 解决方案
+
+```
+标准先行 → AI 按标准写 → AI 按标准 review → AI 自动修复
+```
+
+codi 提供标准库 + 自动化工具链。
+
+---
+
+## 三个边界：工程质量的本质
 
 ```mermaid
 graph BT
-    B["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Baseline<br/>(make lint/test)"]
-    A["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Theoretical Limit<br/>(Best Practices)"] 
+    B["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>基线<br/>(make lint/test)"]
+    A["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>理论上限<br/>(最佳实践)"] 
     
-    B -->|"The Ladder<br/>(codi review)"| A
+    B -->|"梯子<br/>(codi review)"| A
     
     style A fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
     style B fill:#e3f2fd,stroke:#2196f3,stroke-width:3px
 ```
 
-**Inspired by Wu Jun's "Three Boundaries" framework**
+**灵感来自吴军《格局》**
 
-- **Baseline**: Guaranteed by tools (lint, test)
-- **Limit**: Defined by best practices (error handling, architecture)
-- **Ladder**: The climb from baseline to limit (codi review)
+- **基线**：工具自动保证（lint、test）
+- **上限**：最佳实践定义（error handling、architecture）
+- **梯子**：从基线爬到上限的过程（codi review）
 
 ---
 
-## What codi Does
+## codi 做什么
 
-### 1. Define Standards (The Limit)
+### 1. 定义标准（The Limit）
 
-Standards files define project quality rules:
+标准文件定义项目的质量规范：
 
 ```
 standards/
-├── universal/           # All projects
+├── universal/           # 所有项目
 │   ├── security-principles.md
 │   ├── database-principles.md
 │   └── api-design.md
 ├── go/
-│   ├── core/            # Go core
+│   ├── core/            # Go 核心
 │   │   ├── error-handling.md
 │   │   ├── concurrency.md
 │   │   └── interfaces.md
-│   └── github.com/gin-gonic/gin.md  # Dependency standards
+│   └── github.com/gin-gonic/gin.md  # 依赖标准
 └── python/
     ├── core/
     └── fastapi.md
 ```
 
-**Zero-mapping**: dependency path = standard path
+**零映射**：依赖路径 = 标准路径
 ```
 import "github.com/gin-gonic/gin"
        ↓
 standards/go/github.com/gin-gonic/gin.md
 ```
 
-### 2. Automate The Ladder (Review Command)
+### 2. AI 自动执行（The Ladder）
 
 ```bash
-codi review              # AI auto-review + fix
+codi review              # AI 按标准 review + 自动修复
 ```
 
-**How it works**:
-1. Invokes AI's `/code-review` capability
-2. Loads project standards as context
-3. AI finds issues → reads standards → fixes → commits
+**内部流程**：
+1. 调用 AI 的 `/code-review` 能力
+2. 加载项目标准作为上下文
+3. AI 发现问题 → 读标准 → 修复 → 提交
 
-**This is the ladder: AI automatically pushes code from baseline to limit.**
+**这就是梯子：AI 自动把代码从基线推向上限。**
 
-### 3. Provide Scaffolding (The Baseline)
+### 3. 提供脚手架（The Baseline）
 
 ```bash
-codi init my-api         # Generate project skeleton
+codi init my-api         # 生成项目骨架
 ```
 
-**Not a code generator, but a development framework**:
-- Directory structure (following standards)
-- Toolchain config (lint, test, hooks)
-- Makefile (unified command interface)
-- Standards files (.claude/CLAUDE.md)
+**不是代码生成器，是开发框架**：
+- 目录结构（遵循标准）
+- 工具链配置（lint、test、hooks）
+- Makefile（统一命令接口）
+- 标准文件（.claude/CLAUDE.md）
 
-**You fill in business logic, tools guarantee quality baseline.**
+**你填充业务逻辑，工具保证质量基线。**
 
 ---
 
-## 5-Minute Quickstart
+## 5 分钟上手
 
-### New Project
+### 新项目
 
 ```bash
-# 1. Generate project
+# 1. 生成项目
 codi init my-api
 cd my-api
 
-# 2. See what's generated
+# 2. 看看生成了什么
 ls -la
-# .claude/CLAUDE.md              ← AI's project knowledge base
-# .codi/standards/                ← Standards files (local copy)
-# Makefile                        ← make lint/test/build
+# .claude/CLAUDE.md      ← AI 的项目知识库
+# .codi/standards/       ← 标准文件副本
+# Makefile               ← make lint/test/build
 
-# 3. Write code
+# 3. 写代码
 vim internal/handler/user.go
 
-# 4. AI auto-review
+# 4. AI 自动 review
 codi review
 
-# 5. Commit
+# 5. 提交
 git commit -m "feat: add user handler"
 ```
 
-### Existing Project
+### 现有项目
 
 ```bash
 cd your-project
 
-# 1. Analyze project, generate standards config
+# 1. 分析项目，生成标准配置
 codi adopt
 
 # 2. AI review
 codi review
 
-# Done! AI now knows project standards
+# 完成！AI 现在知道项目标准了
 ```
 
 ---
 
-## Core Value
+## 核心价值
 
-### Not a Tool, But a Workflow
+### 不是工具，是工作方式
 
-**codi is NOT**:
-- ❌ Code generator (that's AI's job)
-- ❌ Linter (that's baseline tools)
-- ❌ Documentation generator
+**codi 不是**：
+- ❌ 代码生成器（那是 AI 做的）
+- ❌ Linter（那是基线工具）
+- ❌ 文档生成器
 
-**codi IS**:
-- ✅ Standards definition and distribution system
-- ✅ AI-driven quality automation loop
-- ✅ Evolvable development framework
+**codi 是**：
+- ✅ 标准的定义和分发系统
+- ✅ AI 驱动的质量自动化闭环
+- ✅ 可演进的开发框架
 
-### Key Design Principles
+### 关键设计
 
-**1. Standards as Code**
+**1. 标准即代码**
 ```markdown
-Markdown files = Human-readable + AI-parseable + Git-manageable
+Markdown 文件 = 人能读 + AI 能解析 + Git 能管理
 ```
 
-**2. Dependency-Driven**
+**2. 依赖驱动**
 ```
-Use Gin → Show Gin standards
-Don't use Django → Don't show Django standards
-```
-
-**3. Zero-Config**
-```
-Dependency path = Standard path (zero-mapping)
-Project type auto-detected (CLI/API)
-Standards auto-filtered (relevant only)
+用 Gin → 显示 Gin 标准
+不用 Django → 不显示 Django 标准
 ```
 
-**4. Composable**
+**3. 零配置**
 ```
-Baseline (tools) + Limit (standards) + Ladder (review) = Quality
+依赖路径 = 标准路径（零映射）
+项目类型自动检测（CLI/API）
+标准自动过滤（只看相关的）
 ```
 
----
-
-## CLI Reference
-
-```bash
-codi init <name>        # Create project framework
-codi adopt              # Integrate into existing project
-codi sync               # Update after dependency changes
-codi review             # AI auto-review + fix
-codi review --dry-run   # Preview prompt
-codi status             # Project status
-codi view [language]    # Browse standards
+**4. 可组合**
+```
+基线（工具）+ 上限（标准）+ 梯子（review）= 质量
 ```
 
 ---
 
-## Extending codi
-
-### Add New Language
+## CLI 参考
 
 ```bash
-# 1. Create standards directory
+codi init <name>        # 创建项目框架
+codi adopt              # 集成到现有项目
+codi sync               # 依赖变化后更新
+codi review             # AI 自动 review + fix
+codi review --dry-run   # 预览 prompt
+codi status             # 项目状态
+codi view [language]    # 浏览标准
+```
+
+---
+
+## 扩展 codi
+
+### 添加新语言
+
+```bash
+# 1. 创建标准目录
 mkdir -p standards/rust/core
 
-# 2. Write standards files
+# 2. 写标准文件
 cat > standards/rust/core/error-handling.md << 'EOF'
 # Rust Error Handling
 
 Use `Result<T, E>` for recoverable errors...
 EOF
 
-# 3. Implement analyzer (optional)
+# 3. 实现分析器（可选）
 # internal/analyzer/rust.go
 ```
 
-### Add New Library Standard
+### 添加新库标准
 
 ```bash
-# Zero-mapping: path = file path
-# Using tokio/axum?
+# 零映射：路径即文件
+# 项目用 tokio/axum？
 
 echo "# axum Best Practices" > standards/rust/tokio/axum.md
-# Done! Auto-loads on next codi sync
+# 完成！下次 codi sync 自动加载
 ```
 
 ---
@@ -233,3 +233,5 @@ echo "# axum Best Practices" > standards/rust/tokio/axum.md
 ## License
 
 MIT License - see [LICENSE](LICENSE)
+
+
