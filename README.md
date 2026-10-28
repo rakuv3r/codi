@@ -8,34 +8,32 @@
 
 ## Philosophy: The Three Boundaries of Engineering
 
-Every engineering problem exists within three boundaries:
+Every engineering problem exists within three boundaries that form a "Z" shape:
 
 ```
-         Theoretical Limit (Best Practices)
-                    ▲
-                   ╱│╲
-                  ╱ │ ╲
-                 ╱  │  ╲
-                ╱   │   ╲
-               ╱  Ladder ╲
-              ╱   (CR+AI)  ╲
-             ╱      │       ╲
-            ╱       │        ╲
-           ╱        │         ╲
-          ╱─────────┼──────────╲
-         Baseline (make lint/test)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━  Theoretical Limit
+                        ╱   (Best Practices & Patterns)
+                      ╱
+        The Ladder  ╱
+         (CR + AI) ╱
+                 ╱
+               ╱
+━━━━━━━━━━━━━━━  Baseline
+            (Automated Tools: make lint/test)
 ```
 
-### 1. Baseline (Lower Bound)
+**Inspired by 吴军's "Three Boundaries" framework from 《格局》**
+
+### 1. Baseline (Lower Boundary)
 **What tools guarantee automatically.**
 
 - `make lint` - golangci-lint, ruff, type checkers
-- `make test` - Automated test suites
+- `make test` - Automated test suites  
 - Git hooks - Pre-commit validation
 
 **Purpose:** Catch trivial errors before human review.
 
-### 2. Theoretical Limit (Upper Bound)
+### 2. Theoretical Limit (Upper Boundary)
 **What's possible given current knowledge.**
 
 - Google Go Style Guide + production patterns
@@ -45,7 +43,7 @@ Every engineering problem exists within three boundaries:
 **Purpose:** Know what good code looks like.
 
 ### 3. The Ladder (Climbing Path)
-**How you get from baseline to limit.**
+**How you systematically climb from baseline to limit.**
 
 ```
 Code → CR (find gaps) → AI fixes (apply standards) → CR (verify) → Repeat
@@ -58,7 +56,7 @@ Code → CR (find gaps) → AI fixes (apply standards) → CR (verify) → Repea
 
 **The difference between professionals and amateurs:**
 - Amateurs don't know the limit exists
-- Beginners have a low baseline
+- Beginners have a low baseline  
 - Professionals know both boundaries and climb the ladder systematically
 
 ---
@@ -427,8 +425,8 @@ MIT License - see [LICENSE](LICENSE)
 
 **Inspired by:**
 - Google Style Guides
-- The Pragmatic Programmer
-- 吴军《态度》 - The Three Boundaries framework
+- The Pragmatic Programmer  
+- 吴军《格局》 - The "Three Boundaries" (三条边) framework
 
 **Built for:**
 - Claude Code
