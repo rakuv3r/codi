@@ -10,16 +10,15 @@
 
 Every engineering problem exists within three boundaries that form a "Z" shape:
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━  Theoretical Limit
-                        ╱   (Best Practices & Patterns)
-                      ╱
-        The Ladder  ╱
-         (CR + AI) ╱
-                 ╱
-               ╱
-━━━━━━━━━━━━━━━  Baseline
-            (Automated Tools: make lint/test)
+```mermaid
+graph BT
+    B["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Baseline<br/>(make lint/test)"]
+    A["━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Theoretical Limit<br/>(Best Practices & Patterns)"] 
+    
+    B -->|"The Ladder<br/>(CR + AI)"| A
+    
+    style A fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
+    style B fill:#e3f2fd,stroke:#2196f3,stroke-width:3px
 ```
 
 **Inspired by 吴军's "Three Boundaries" framework from 《格局》**
