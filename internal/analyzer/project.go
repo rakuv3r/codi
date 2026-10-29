@@ -8,8 +8,9 @@ type Language string
 // Supported programming languages.
 const (
 	// LanguageGo represents Go programming language.
-	LanguageGo     Language = "go"
-	LanguagePython Language = "python"
+	LanguageGo        Language = "go"
+	LanguagePython    Language = "python"
+	LanguageUniversal Language = "universal"
 )
 
 func (l Language) String() string {
@@ -18,7 +19,7 @@ func (l Language) String() string {
 
 // IsValid checks if the language is supported.
 func (l Language) IsValid() bool {
-	return l == LanguageGo || l == LanguagePython
+	return l == LanguageGo || l == LanguagePython || l == LanguageUniversal
 }
 
 // ProjectType represents the type of project.

@@ -38,8 +38,8 @@ func LoadStandards(projectPath string, projectInfo *analyzer.ProjectInfo, deps *
 	return standards, codiRoot, nil
 }
 
-// CopyStandardsToProject copies standards to .codi/standards/ directory.
-func CopyStandardsToProject(projectPath string, standards *standard.List, codiRoot string) error {
+// CopyStandards copies standards to .codi/standards/ directory.
+func CopyStandards(projectPath string, standards *standard.List, codiRoot string) error {
 	destBase := filepath.Join(projectPath, ".codi", "standards")
 
 	// Get source filesystem

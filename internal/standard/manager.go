@@ -133,7 +133,10 @@ func (m *Manager) loadStandard(lang analyzer.Language, depPath string, dep *anal
 	// Check local override first
 	localPath := filepath.Join(m.projectRoot, ".codi", "standards", stdPath)
 	if _, err := os.Stat(localPath); err == nil {
-		relPath, _ := filepath.Rel(filepath.Join(m.projectRoot, ".codi", "standards"), localPath)
+		relPath, err := filepath.Rel(filepath.Join(m.projectRoot, ".codi", "standards"), localPath)
+		if err != nil {
+			relPath = stdPath // Fallback to standard path
+		}
 		return &Standard{
 			Name:       filepath.Base(depPath),
 			Path:       relPath,

@@ -13,8 +13,8 @@ import (
 	"github.com/rakuv3r/codi/internal/standard"
 )
 
-// GenerateAIToolFiles generates AI tool configuration files (.claude/CLAUDE.md, etc).
-func GenerateAIToolFiles(projectPath string, projectInfo *analyzer.ProjectInfo, aiTools []generator.AIToolConfig, standards *standard.List, out io.Writer) error {
+// GenerateAITools generates AI tool configuration files (.claude/CLAUDE.md, etc).
+func GenerateAITools(projectPath string, projectInfo *analyzer.ProjectInfo, aiTools []generator.AIToolConfig, standards *standard.List, out io.Writer) error {
 	_, _ = fmt.Fprintln(out, "\n📝 Updating AI tool files...")
 
 	// Generate AI tool files based on config

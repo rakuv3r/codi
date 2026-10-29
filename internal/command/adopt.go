@@ -4,17 +4,15 @@ package command
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/rakuv3r/codi"
 	"github.com/rakuv3r/codi/internal/analyzer"
 	"github.com/rakuv3r/codi/internal/config"
-	"github.com/rakuv3r/codi/internal/standard"
+	"github.com/rakuv3r/codi/internal/setup"
 )
 
 // NewAdoptCmd creates the adopt command.
@@ -119,175 +117,36 @@ func detectAndAnalyze(out io.Writer, projectPath string) (analyzer.Language, *an
 }
 
 func generateProjectFiles(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) error {
-	codiRoot := getCodiRoot()
-
-	// Load standards
-	var standards any
-	var err error
-	if codiRoot == "" {
-		// Use embedded standards
-		standards, err = loadStandardsFromEmbed(out, projectPath, projectInfo, deps)
-	} else {
-		// Use disk standards
-		standards, err = loadStandardsForAdopt(out, codiRoot, projectPath, projectInfo, deps)
-	}
-	if err != nil {
-		return err
-	}
-
-	// Find templates directory (or use embed)
-	var templatesDir string
-	if codiRoot == "" {
-		// Use embedded templates - pass special marker
-		templatesDir = "" // Signal to use embed
-	} else {
-		templatesDir, err = findTemplatesDirForAdopt()
-		if err != nil {
-			return err
-		}
-	}
-
-	// Generate all files
-	_, _ = fmt.Fprintln(out, "\n📝 Generating CLAUDE.md...")
-	if err := generateAdoptFiles(out, projectPath, projectInfo, deps, standards, templatesDir, codiRoot); err != nil {
-		return err
-	}
-
-	printAdoptSuccessMessage(out)
-	return nil
-}
-
-func loadStandardsFromEmbed(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) (any, error) {
-	// Create sub-FS for standards directory
-	standardsFS, err := fs.Sub(codi.EmbeddedFS, "standards")
-	if err != nil {
-		return nil, fmt.Errorf("failed to access embedded standards: %w", err)
-	}
-
-	stdMgr := standard.NewManagerWithFS(standardsFS, projectPath)
-	standards, err := stdMgr.LoadForProject(projectInfo, deps)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load standards: %w", err)
-	}
-	_, _ = fmt.Fprintf(out, "  ✓ Standards: %d loaded\n", standards.Count())
-	return standards, nil
-}
-
-func loadStandardsForAdopt(out io.Writer, codiRoot, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList) (any, error) {
-	stdMgr := standard.NewManager(filepath.Join(codiRoot, "standards"), projectPath)
-	standards, err := stdMgr.LoadForProject(projectInfo, deps)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load standards: %w", err)
-	}
-	_, _ = fmt.Fprintf(out, "  ✓ Standards: %d loaded\n", standards.Count())
-	return standards, nil
-}
-
-func findTemplatesDirForAdopt() (string, error) {
-	exePath, err := os.Executable()
-	if err != nil {
-		return "", fmt.Errorf("failed to get executable path: %w", err)
-	}
-	exeDir := filepath.Dir(exePath)
-	templatesDir := filepath.Join(exeDir, "..", "templates")
-
-	// If not found, try current directory (development mode)
-	if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
-		templatesDir = "templates"
-	}
-	return templatesDir, nil
-}
-
-func generateAdoptFiles(out io.Writer, projectPath string, projectInfo *analyzer.ProjectInfo, deps *analyzer.DependencyList, standards any, templatesDir, codiRoot string) error {
-	// Check and add missing quality tools
-	_, _ = fmt.Fprintln(out, "\n🔧 Checking quality tools...")
-	if err := addMissingQualityTools(out, projectPath, projectInfo, templatesDir); err != nil {
-		return fmt.Errorf("failed to add quality tools: %w", err)
-	}
-
-	// Generate REFACTOR.md if needed
-	if needsRefactoring(projectPath, projectInfo.Language) {
-		_, _ = fmt.Fprintln(out, "\n📋 Generating REFACTOR.md...")
-		if err := generateRefactorGuide(projectPath, projectInfo, templatesDir); err != nil {
-			return fmt.Errorf("failed to generate REFACTOR.md: %w", err)
-		}
-		_, _ = fmt.Fprintln(out, "  ✓ REFACTOR.md created")
-	}
-
-	// Copy review templates
-	copyReviewTemplates(out, codiRoot, projectPath)
-
 	// Prompt for AI tools
-	_, _ = fmt.Fprintln(out, "\n🤖 Select AI tools:")
 	selectedTools := promptAITools()
 
-	// Generate AI tool files
-	_, _ = fmt.Fprintln(out, "\n📝 Generating AI tool files...")
-	for _, tool := range selectedTools {
-		// Create parent directory
-		toolDir := filepath.Dir(filepath.Join(projectPath, tool.OutputPath))
-		if err := os.MkdirAll(toolDir, config.DirPermission); err != nil {
-			return fmt.Errorf("failed to create directory for %s: %w", tool.Name, err)
-		}
-
-		// Generate file
-		toolPath := filepath.Join(projectPath, tool.OutputPath)
-		if err := generateAIToolFile(toolPath, projectInfo, standards); err != nil {
-			return fmt.Errorf("failed to generate %s: %w", tool.OutputPath, err)
-		}
-
-		_, _ = fmt.Fprintf(out, "  ✓ %s created\n", tool.OutputPath)
+	// Setup project using setup package
+	_, _ = fmt.Fprintln(out, "\n📝 Setting up project...")
+	err := setup.Project(setup.Options{
+		ProjectPath:        projectPath,
+		ProjectInfo:        projectInfo,
+		Dependencies:       deps,
+		AITools:            selectedTools,
+		CopyStandards:      true,
+		CopyReviewTemplate: true,
+		AddQualityTools:    true,
+		InstallGitHooks:    true,
+		PromptForSetup:     true,
+		Output:             out,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to setup project: %w", err)
 	}
 
-	// Save config
+	// Save config with selected AI tools
 	cfg := config.NewConfigWithTools(projectInfo, deps, selectedTools)
 	if err := config.Save(projectPath, cfg); err != nil {
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return fmt.Errorf("failed to save config: %w", err)
 	}
-	_, _ = fmt.Fprintln(out, "  ✓ .codi/config.yaml created")
 
+	_, _ = fmt.Fprintln(out, "  ✓ .codi/config.yaml updated")
+	printAdoptSuccessMessage(out)
 	return nil
-}
-
-func printAdoptSuccessMessage(out io.Writer) {
-	_, _ = fmt.Fprintln(out, "\n✅ Project successfully integrated with codi!")
-	_, _ = fmt.Fprintln(out, "\nNext steps:")
-	_, _ = fmt.Fprintln(out, "  - Review AI tool files (.claude/CLAUDE.md, .codex/AGENTS.md)")
-	_, _ = fmt.Fprintln(out, "  - Review .codi/review-checklist.md (AI automated checks)")
-	_, _ = fmt.Fprintln(out, "  - Run 'codi sync' after adding dependencies")
-	_, _ = fmt.Fprintln(out, "  - Install Git hooks: ./scripts/install_hooks.sh")
-}
-
-func copyReviewTemplates(out io.Writer, codiRoot, projectPath string) {
-	codiDir := filepath.Join(projectPath, config.CodiDirName)
-
-	// Create .codi directory if needed
-	if err := os.MkdirAll(codiDir, config.DirPermission); err != nil {
-		return
-	}
-
-	var checklistData []byte
-	var err error
-
-	if codiRoot == "" {
-		// Use embedded files
-		checklistData, err = fs.ReadFile(codi.EmbeddedFS, filepath.Join("standards", config.ReviewChecklistFilename))
-		if err == nil {
-			checklistDest := filepath.Join(codiDir, config.ReviewChecklistFilename)
-			if writeErr := os.WriteFile(checklistDest, checklistData, config.ConfigPermission); writeErr == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .codi/review-checklist.md created")
-			}
-		}
-	} else {
-		// Use disk files
-		checklistSrc := filepath.Join(codiRoot, config.StandardsDirName, config.ReviewChecklistFilename)
-		checklistDest := filepath.Join(codiDir, config.ReviewChecklistFilename)
-		if data, err := os.ReadFile(checklistSrc); err == nil {
-			if err := os.WriteFile(checklistDest, data, config.ConfigPermission); err == nil {
-				_, _ = fmt.Fprintln(out, "  ✓ .codi/review-checklist.md created")
-			}
-		}
-	}
 }
 
 // inferProjectType infers project type from dependencies.
@@ -334,43 +193,11 @@ func inferProjectType(deps *analyzer.DependencyList) analyzer.ProjectType {
 	return analyzer.ProjectTypeCLI
 }
 
-// getCodiRoot returns the codi installation root directory.
-// getCodiRoot returns the codi installation root directory.
-// Returns empty string if not found (caller should use embed).
-func getCodiRoot() string {
-	// Get executable path
-	exe, err := os.Executable()
-	if err != nil {
-		// If we can't get exe path, try current directory
-		cwd, _ := os.Getwd()
-		if _, statErr := os.Stat(filepath.Join(cwd, "standards")); statErr == nil {
-			return cwd
-		}
-		// Return empty string to signal use of embed
-		return ""
-	}
-
-	// Resolve symlinks
-	exe, err = filepath.EvalSymlinks(exe)
-	if err != nil {
-		return "" // Use embed
-	}
-
-	// Assume: bin/codi is in codi root
-	// e.g., /path/to/codi/bin/codi -> /path/to/codi
-	root := filepath.Dir(filepath.Dir(exe))
-
-	// Verify standards/ exists
-	standardsPath := filepath.Join(root, "standards")
-	if _, err := os.Stat(standardsPath); err != nil {
-		// Fallback: try current working directory (for development)
-		cwd, _ := os.Getwd()
-		if _, statErr := os.Stat(filepath.Join(cwd, "standards")); statErr == nil {
-			return cwd
-		}
-		// Return empty string to signal use of embed
-		return ""
-	}
-
-	return root
+func printAdoptSuccessMessage(out io.Writer) {
+	_, _ = fmt.Fprintln(out, "\n✅ Project successfully integrated with codi!")
+	_, _ = fmt.Fprintln(out, "\nNext steps:")
+	_, _ = fmt.Fprintln(out, "  - Review AI tool files (.claude/CLAUDE.md, .codex/AGENTS.md)")
+	_, _ = fmt.Fprintln(out, "  - Review .codi/review-checklist.md (AI automated checks)")
+	_, _ = fmt.Fprintln(out, "  - Run 'codi sync' after adding dependencies")
+	_, _ = fmt.Fprintln(out, "  - Install Git hooks: ./scripts/install_hooks.sh")
 }
